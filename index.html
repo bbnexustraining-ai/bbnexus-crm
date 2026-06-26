@@ -260,6 +260,71 @@ a{color:var(--gold);text-decoration:none}
 .coll-body.on{display:block}
 
 /* ============================================================
+   SECTION: PASSWORD RESET
+   ============================================================ */
+const PASSWD = {
+  _SEC: {
+    shyan: { q: 'What is your email?', a: 'shyan@bbnexus.com.au' },
+    amal:  { q: 'What is your email?', a: 'amal@bbnexus.com.au'  },
+    rahul: { q: 'What is your email?', a: 'rahul@bbnexus.com.au' }
+  },
+  _sel: null,
+
+  open() {
+    this._sel = null;
+    document.getElementById('pr-user').value = '';
+    document.getElementById('pr-ans').value = '';
+    const n = document.getElementById('pr-new'); if(n) n.value='';
+    const c = document.getElementById('pr-conf'); if(c) c.value='';
+    document.getElementById('pr-err').textContent = '';
+    document.getElementById('pr-q-wrap').style.display = 'none';
+    document.getElementById('pr-step1').style.display = 'block';
+    document.getElementById('pr-step2').style.display = 'none';
+    document.getElementById('mo-pwreset').classList.add('on');
+  },
+
+  close() { document.getElementById('mo-pwreset').classList.remove('on'); },
+
+  _onUser() {
+    const u = document.getElementById('pr-user').value;
+    const wrap = document.getElementById('pr-q-wrap');
+    if (u && this._SEC[u]) {
+      document.getElementById('pr-q-lbl').textContent = this._SEC[u].q;
+      wrap.style.display = 'block';
+    } else {
+      wrap.style.display = 'none';
+    }
+  },
+
+  verify() {
+    const u = document.getElementById('pr-user').value;
+    const ans = document.getElementById('pr-ans').value.trim().toLowerCase();
+    const err = document.getElementById('pr-err');
+    if (!u || !this._SEC[u]) { err.textContent = 'Please select a username.'; return; }
+    if (!ans) { err.textContent = 'Please answer the security question.'; return; }
+    if (ans !== this._SEC[u].a) { err.textContent = 'Incorrect answer. Try again.'; return; }
+    this._sel = u;
+    err.textContent = '';
+    document.getElementById('pr-step1').style.display = 'none';
+    document.getElementById('pr-step2').style.display = 'block';
+    setTimeout(() => document.getElementById('pr-new').focus(), 50);
+  },
+
+  reset() {
+    const np = document.getElementById('pr-new').value;
+    const cp = document.getElementById('pr-conf').value;
+    const err = document.getElementById('pr-err');
+    if (np.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+    if (np !== cp) { err.textContent = 'Passwords do not match.'; return; }
+    const stored = JSON.parse(localStorage.getItem('bb_passwords') || '{}');
+    stored[this._sel] = np;
+    localStorage.setItem('bb_passwords', JSON.stringify(stored));
+    this.close();
+    toast('Password updated — please sign in');
+  }
+};
+
+/* ============================================================
    SECTION: SETTINGS
    ============================================================ */
 .set-sec{background:var(--card);border-radius:var(--r);margin:0 16px 12px;padding:16px;box-shadow:var(--sh)}
@@ -328,6 +393,9 @@ a{color:var(--gold);text-decoration:none}
     </div>
     <div class="auth-err" id="auth-err"></div>
     <button class="btn btn-primary" onclick="AUTH.login()">Sign In</button>
+    <p style="text-align:center;margin-top:14px;font-size:13px">
+      <a href="#" onclick="PASSWD.open();return false">Forgot password?</a>
+    </p>
   </div>
 </div>
 
@@ -430,6 +498,22 @@ a{color:var(--gold);text-decoration:none}
           <button class="btn btn-outline btn-sm" onclick="document.getElementById('imp-file').click()">Import JSON</button>
           <input type="file" id="imp-file" accept=".json" style="display:none" onchange="ST.importData(event)">
         </div>
+      </div>
+
+      <div class="set-sec">
+        <h3>Account Security</h3>
+        <div class="fg">
+          <label>Display Name</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="st-dispname" placeholder="Your display name" style="flex:1">
+            <button class="btn btn-outline btn-sm" onclick="ST.saveName()" style="white-space:nowrap">Save Name</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="fg"><label>Current Password</label><input type="password" id="st-curpw" placeholder="Current password"></div>
+        <div class="fg"><label>New Password</label><input type="password" id="st-newpw" placeholder="Min 6 characters"></div>
+        <div class="fg"><label>Confirm New Password</label><input type="password" id="st-confpw" placeholder="Repeat new password"></div>
+        <button class="btn btn-primary" onclick="ST.savePassword()">Save Password</button>
       </div>
 
       <div class="set-sec">
@@ -749,10 +833,12 @@ function countConsecutive(ints, type) {
    ============================================================ */
 const AUTH = {
   user: null,
+  userKey: null,
 
   init() {
     const u = sessionStorage.getItem('bb_user');
-    if (u) { this.user = u; this._show(); }
+    const uk = sessionStorage.getItem('bb_user_key');
+    if (u) { this.user = u; this.userKey = uk || u.toLowerCase(); this._show(); }
   },
 
   login() {
@@ -760,9 +846,13 @@ const AUTH = {
     const p = document.getElementById('lp').value;
     const err = document.getElementById('auth-err');
     if (!u||!p) { err.textContent='Enter username and password.'; return; }
-    if (USERS[u] && USERS[u]===p) {
+    const stored = JSON.parse(localStorage.getItem('bb_passwords') || '{}');
+    const expected = stored[u] !== undefined ? stored[u] : USERS[u];
+    if (expected !== undefined && expected === p) {
+      this.userKey = u;
       this.user = u.charAt(0).toUpperCase()+u.slice(1);
       sessionStorage.setItem('bb_user', this.user);
+      sessionStorage.setItem('bb_user_key', u);
       err.textContent='';
       this._show();
     } else {
@@ -772,7 +862,9 @@ const AUTH = {
 
   logout() {
     sessionStorage.removeItem('bb_user');
+    sessionStorage.removeItem('bb_user_key');
     this.user = null;
+    this.userKey = null;
     document.getElementById('auth').style.display='flex';
     document.getElementById('main').classList.remove('on');
     document.getElementById('fab').style.display='none';
@@ -1359,6 +1451,8 @@ const ST = {
   init() {
     document.getElementById('api-key').value = DB.getKey();
     document.getElementById('set-user').textContent = AUTH.user;
+    document.getElementById('st-dispname').value = AUTH.user || '';
+    ['st-curpw','st-newpw','st-confpw'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   },
 
   toggleKey() {
@@ -1369,6 +1463,37 @@ const ST = {
   },
 
   saveKey() { DB.setKey(document.getElementById('api-key').value.trim()); toast('API key saved'); },
+
+  saveName() {
+    const name = document.getElementById('st-dispname').value.trim();
+    if (!name) { toast('Display name cannot be empty'); return; }
+    const names = JSON.parse(localStorage.getItem('bb_display_names') || '{}');
+    names[AUTH.userKey || AUTH.user.toLowerCase()] = name;
+    localStorage.setItem('bb_display_names', JSON.stringify(names));
+    AUTH.user = name;
+    sessionStorage.setItem('bb_user', name);
+    document.getElementById('hdr-user').textContent = name;
+    document.getElementById('set-user').textContent = name;
+    const sbU = document.getElementById('sb-user'); if(sbU) sbU.textContent = name;
+    toast('Display name updated');
+  },
+
+  savePassword() {
+    const curpw = document.getElementById('st-curpw').value;
+    const newpw = document.getElementById('st-newpw').value;
+    const confpw = document.getElementById('st-confpw').value;
+    const uKey = (AUTH.userKey || AUTH.user || '').toLowerCase();
+    const stored = JSON.parse(localStorage.getItem('bb_passwords') || '{}');
+    const expected = stored[uKey] !== undefined ? stored[uKey] : (USERS[uKey] || '');
+    if (!curpw) { toast('Enter your current password'); return; }
+    if (curpw !== expected) { toast('Current password is incorrect'); return; }
+    if (newpw.length < 6) { toast('New password must be at least 6 characters'); return; }
+    if (newpw !== confpw) { toast('New passwords do not match'); return; }
+    stored[uKey] = newpw;
+    localStorage.setItem('bb_passwords', JSON.stringify(stored));
+    ['st-curpw','st-newpw','st-confpw'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+    toast('Password updated successfully');
+  },
 
   exportData() {
     const data = DB.export();
@@ -1432,5 +1557,47 @@ document.getElementById('lu').addEventListener('keydown',e=>{ if(e.key==='Enter'
 DB.load();
 AUTH.init();
 </script>
+
+<!-- ============================================================
+     SECTION: PASSWORD RESET MODAL
+     ============================================================ -->
+<div class="mo" id="mo-pwreset">
+  <div class="sheet">
+    <div class="m-hdr">
+      <h3>Reset Password</h3>
+      <button class="m-close" onclick="PASSWD.close()">×</button>
+    </div>
+    <div class="m-body">
+      <div class="auth-err" id="pr-err" style="text-align:left;margin-bottom:8px"></div>
+
+      <!-- Step 1: select user -->
+      <div id="pr-step1">
+        <div class="fg">
+          <label>Username</label>
+          <select id="pr-user" onchange="PASSWD._onUser()">
+            <option value="">— select —</option>
+            <option value="shyan">Shyan</option>
+            <option value="amal">Amal</option>
+            <option value="rahul">Rahul</option>
+          </select>
+        </div>
+        <div class="fg" id="pr-q-wrap" style="display:none">
+          <label id="pr-q-lbl">Security Question</label>
+          <input type="text" id="pr-ans" placeholder="Your answer">
+        </div>
+        <button class="btn btn-primary" onclick="PASSWD.verify()">Next</button>
+      </div>
+
+      <!-- Step 2: new password -->
+      <div id="pr-step2" style="display:none">
+        <p class="t-muted" style="margin-bottom:14px">Enter your new password.</p>
+        <div class="fg"><label>New Password</label><input type="password" id="pr-new" placeholder="Min 6 characters"></div>
+        <div class="fg"><label>Confirm Password</label><input type="password" id="pr-conf" placeholder="Repeat new password"></div>
+        <button class="btn btn-primary" onclick="PASSWD.reset()">Save New Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
