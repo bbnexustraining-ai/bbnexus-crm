@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>BBNexus CRM</title>
+<title>B&amp;B Nexus CRM</title>
 <style>
 /* ============================================================
    SECTION: DESIGN TOKENS & RESET
@@ -378,7 +378,7 @@ const PASSWD = {
      ============================================================ -->
 <div id="auth">
   <div class="auth-logo">
-    <h1>BBNexus</h1>
+    <h1>B&amp;B Nexus</h1>
     <p>CONSTRUCTION BD CRM</p>
   </div>
   <div class="auth-card">
@@ -405,7 +405,7 @@ const PASSWD = {
 <div id="main">
 
   <div class="hdr">
-    <h1>BBNexus CRM</h1>
+    <h1>B&amp;B Nexus CRM</h1>
     <div class="hdr-right">
       <span class="hdr-user" id="hdr-user"></span>
       <button class="btn-logout" onclick="AUTH.logout()">Logout</button>
@@ -416,7 +416,7 @@ const PASSWD = {
 
   <aside class="sidebar" id="sidebar">
     <div class="sb-logo">
-      <h1>BBNexus</h1>
+      <h1>B&amp;B Nexus</h1>
       <p>CONSTRUCTION BD CRM</p>
     </div>
     <nav class="sb-nav">
@@ -618,10 +618,15 @@ const PASSWD = {
       <div class="coll-body" id="li-tran-wrap">
         <div class="fg"><textarea id="li-tran" placeholder="Paste transcript here…" style="min-height:100px"></textarea></div>
       </div>
+      <div style="display:flex;gap:10px" class="mt12">
+        <div class="fg" style="flex:1;margin-bottom:0"><label>Date</label><input type="date" id="li-date"></div>
+        <div class="fg" style="flex:1;margin-bottom:0"><label>Time</label><input type="time" id="li-time"></div>
+      </div>
       <div class="fg mt8">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;font-size:14px;font-weight:400">
-          <input type="checkbox" id="li-approx"> Approximate date (logging late)
+          <input type="checkbox" id="li-past" onchange="M.togglePast(this)"> This interaction happened in the past
         </label>
+        <p class="t-muted" id="li-past-note" style="display:none;font-size:12px;margin-top:4px">Date adjusted — logging a past interaction</p>
       </div>
       <div id="fu-sug-wrap" style="display:none">
         <div class="divider"></div>
@@ -1090,7 +1095,7 @@ const DET = {
         <div class="int-entry">
           <div class="int-e-hdr">
             <span class="int-chip">${INT_NAME[i.interactionType]||i.interactionType}</span>
-            <span class="int-date">${fmtDisp(i.timestamp.split('T')[0])}${i.approximateDate?' (approx)':''}</span>
+            <span class="int-date">${fmtDisp(i.timestamp.split('T')[0])}</span>
             <span class="int-by">@${x(i.createdBy)}</span>
           </div>
           <div class="int-outcome">${x(i.outcome)}</div>
@@ -1199,7 +1204,8 @@ const M = {
       document.getElementById('li-out').value='';
       document.getElementById('li-notes').value='';
       document.getElementById('li-tran').value='';
-      document.getElementById('li-approx').checked=false;
+      document.getElementById('li-past').checked=false;
+      document.getElementById('li-past-note').style.display='none';
       document.getElementById('fu-edit-f').classList.remove('on');
       document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('on'));
     }
@@ -1297,10 +1303,14 @@ const M = {
     this._cid=cid; this._type=null; this._logSaved=false;
     const c=DB.get(cid);
     document.getElementById('log-title').textContent='Log: '+(c?c.name:'');
+    const _now = new Date();
     document.getElementById('li-out').value='';
     document.getElementById('li-notes').value='';
     document.getElementById('li-tran').value='';
-    document.getElementById('li-approx').checked=false;
+    document.getElementById('li-date').value=fmtISO(_now);
+    document.getElementById('li-time').value=_now.toTimeString().slice(0,5);
+    document.getElementById('li-past').checked=false;
+    document.getElementById('li-past-note').style.display='none';
     document.getElementById('fu-sug-wrap').style.display='none';
     document.getElementById('log-foot').style.display='flex';
     document.getElementById('fu-edit-f').classList.remove('on');
@@ -1317,6 +1327,10 @@ const M = {
     btn.classList.add('on');
   },
 
+  togglePast(cb) {
+    document.getElementById('li-past-note').style.display = cb.checked ? 'block' : 'none';
+  },
+
   saveLog() {
     if (!this._type) { toast('Select an interaction type'); return; }
     const out=document.getElementById('li-out').value.trim();
@@ -1325,10 +1339,12 @@ const M = {
     const c=DB.get(this._cid);
     if (!c) return;
 
+    const _d=document.getElementById('li-date').value;
+    const _t=document.getElementById('li-time').value||'00:00';
+    const _ts=_d ? new Date(_d+'T'+_t+':00').toISOString() : new Date().toISOString();
     const ix = {
       id:crypto.randomUUID(), contactId:this._cid, createdBy:AUTH.user,
-      timestamp:new Date().toISOString(),
-      approximateDate:document.getElementById('li-approx').checked,
+      timestamp:_ts,
       interactionType:this._type, outcome:out,
       notes:document.getElementById('li-notes').value.trim(),
       transcript:document.getElementById('li-tran').value.trim()
