@@ -428,7 +428,7 @@ a{color:var(--gold);text-decoration:none}
     <!-- DASHBOARD -->
     <div class="screen on" id="s-dash">
       <div class="sh"><h2>Dashboard</h2><p id="dash-date"></p></div>
-      <div id="dash-import-cta" style="display:none;padding:0 16px 16px"></div>
+
       <div class="sec-title">Pipeline Summary</div>
       <div class="pipe-grid" id="pipe-grid"></div>
       <div class="dash-group-hdr">Active Prospects</div>
@@ -481,6 +481,15 @@ a{color:var(--gold);text-decoration:none}
         </div>
         <button class="btn btn-primary" onclick="ST.saveKey()">Save API Key</button>
         <p class="t-muted mt8">Used for AI summaries. Stored locally in your browser.</p>
+      </div>
+
+      <div class="set-sec">
+        <h3>Import Contacts</h3>
+        <p class="t-muted" style="font-size:13px;margin-bottom:14px">Imported contacts are added to your existing contacts — nothing is overwritten.</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn btn-primary" onclick="document.getElementById('imp-file-csv').click()">Upload CSV or Excel file</button>
+          <button class="btn btn-outline" onclick="IMP.open();IMP.tab('b')">Paste and extract with AI</button>
+        </div>
       </div>
 
       <div class="set-sec">
@@ -950,21 +959,6 @@ const DASH = {
     const cs = DB.all();
     cs.forEach(c => { c.heatScore = calcHeat(c); });
     DB.save();
-
-    // Import CTA — only when zero contacts
-    const cta = document.getElementById('dash-import-cta');
-    if (cta) {
-      if (!cs.length) {
-        cta.style.display='block';
-        cta.innerHTML=`<div style="background:var(--card);border-radius:var(--r);padding:20px;box-shadow:var(--sh);text-align:center">
-          <p style="font-size:15px;font-weight:600;color:var(--green);margin-bottom:6px">No contacts yet</p>
-          <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Import your existing contacts to get started.</p>
-          <button class="btn btn-primary" style="width:auto;padding:10px 24px" onclick="IMP.open()">Import Existing CRM</button>
-        </div>`;
-      } else {
-        cta.style.display='none';
-      }
-    }
 
     // Pipeline
     const cnt = {};
@@ -1934,6 +1928,7 @@ const IMP = {
     this.close();
     toast(count+' contact'+(count!==1?'s':'')+' imported');
     DASH.render();
+    CL.render();
   },
 
   // ── AI extraction ──────────────────────────────────────────
@@ -1983,6 +1978,7 @@ const IMP = {
     this.close();
     toast(count+' contact'+(count!==1?'s':'')+' imported');
     DASH.render();
+    CL.render();
   },
 
   _makeContact(obj) {
