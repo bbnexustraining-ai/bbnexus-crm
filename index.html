@@ -487,7 +487,7 @@ a{color:var(--gold);text-decoration:none}
         <h3>Import Contacts</h3>
         <p class="t-muted" style="font-size:13px;margin-bottom:14px">Imported contacts are added to your existing contacts — nothing is overwritten.</p>
         <div style="display:flex;flex-direction:column;gap:10px">
-          <button class="btn btn-primary" onclick="document.getElementById('imp-file-csv').click()">Upload CSV or Excel file</button>
+          <button class="btn btn-primary" onclick="IMP.openUpload()">Upload CSV or Excel file</button>
           <button class="btn btn-outline" onclick="IMP.open();IMP.tab('b')">Paste and extract with AI</button>
         </div>
       </div>
@@ -1823,6 +1823,11 @@ const IMP = {
     {v:'notes', l:'Notes'},
     {v:'relationshipTier',l:'Relationship Tier'},
   ],
+
+  openUpload() {
+    this.open();
+    setTimeout(()=>document.getElementById('imp-file-csv').click(), 50);
+  },
 
   open() {
     this._rows=[]; this._headers=[]; this._aiContacts=[];
