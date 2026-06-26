@@ -1592,7 +1592,7 @@ ${ixSummary||'None logged'}`;
       const data = await res.json();
       const sum = data.content[0].text;
       DB.update(id, {aiSummary:sum});
-      if (content) content.innerHTML=`<div class="ai-text">${sum.split(/\n\n+/).map(p=>`<p>${x(p.trim())}</p>`).join('')}</div>`;
+      if (content) content.innerHTML = sum.split('\n\n').map(p => '<p class="ai-text" style="margin-bottom:10px;line-height:1.7;font-size:13px;color:rgba(255,255,255,0.9)">' + x(p.trim()) + '</p>').join('');
       if (btn) btn.textContent='Refresh';
     } catch(e) {
       if (btn) btn.textContent='Refresh';
@@ -1681,15 +1681,19 @@ const PASSWD = {
     const key=DB.getKey(); if(!key){toast('Add API key in Settings');return;}
     const c=DB.get(id); if(!c) return;
     const btn=document.getElementById('cs-ref-btn');
-    const csExp=document.getElementById('cs-exp');
+    const block=document.getElementById('cs-block');
     if(btn) btn.innerHTML='<span class="spinner"></span>';
+    console.log('AI call starting, key:', key ? 'present' : 'missing');
     const ixOuts=(c.interactions||[]).slice(0,5).map(i=>i.outcome).join('; ')||'none';
     const msg=`Name: ${c.name} | Company: ${c.company} | Title: ${c.jobTitle||'unknown'} | Stage: ${c.stage} | Heat: ${c.heatScore}/10\nLast 5 interactions: ${ixOuts}`;
     try {
-      const raw=await this._callAPI(key,'Score this construction BD contact on conversion probability 1-10. Return ONLY valid JSON: {"score":<integer 1-10>,"explanation":"<one sentence>"}',msg,150);
-      console.log('[AI.refreshCS] raw response:', raw);
-      const cleaned=raw.replace(/^```[a-z]*\n?/,'').replace(/\n?```$/,'').trim();
-      const obj=JSON.parse(cleaned);
+      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:150,system:'Score this construction BD contact on conversion probability 1-10. Return ONLY valid JSON: {"score":<integer 1-10>,"explanation":"<one sentence>"}',messages:[{role:'user',content:msg}]})});
+      if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API error '+res.status);}
+      const data=await res.json();
+      const text=data.content[0].text;
+      console.log('[AI.refreshCS] raw response:', text);
+      const clean=text.replace(/```json/g,'').replace(/```/g,'').replace(/^json/,'').trim();
+      const obj=JSON.parse(clean);
       if(!obj.score||!obj.explanation) throw new Error('Invalid response structure');
       const cs={score:obj.score,explanation:obj.explanation,lastUpdated:new Date().toISOString()};
       DB.update(id,{conversionScore:cs});
@@ -1697,7 +1701,7 @@ const PASSWD = {
     } catch(e) {
       console.error('[AI.refreshCS] error:', e);
       if(btn) btn.textContent='Refresh Score';
-      if(csExp) csExp.textContent='Error: '+e.message;
+      if(block) block.innerHTML+='<p style="color:#ff6b6b;font-size:12px;margin-top:8px">Error: '+x(e.message)+'</p>';
       else toast('Score error: '+e.message);
     }
   },
@@ -1707,23 +1711,28 @@ const PASSWD = {
     const key=DB.getKey(); if(!key){toast('Add API key in Settings');return;}
     const c=DB.get(id); if(!c) return;
     const btn=document.getElementById('rs-ref-btn');
-    const rsReason=document.getElementById('rs-reason');
+    const block=document.getElementById('rs-block');
     if(btn) btn.innerHTML='<span class="spinner"></span>';
+    console.log('AI call starting, key:', key ? 'present' : 'missing');
     const ixOuts=(c.interactions||[]).slice(0,5).map(i=>i.interactionType+': '+i.outcome).join('; ')||'none';
     const sixWks=fmtISO(calDays(new Date(),42));
     const msg=`Name: ${c.name} | Company: ${c.company} | Role: ${c.jobTitle||'unknown'} | Notes: ${c.notes||'none'}\nRecent interactions: ${ixOuts}`;
+    const system='You maintain long-term relationships for a construction recruitment firm. Return ONLY valid JSON with exactly these fields: {"checkInReason":"<personalised one sentence reason to reach out>","suggestedDate":"'+sixWks+'","reclassifyFlag":<true if notes mention role change, project win, or labour enquiry, else false>,"reclassifyReason":"<one sentence only if reclassifyFlag true, else empty string>"}';
     try {
-      const raw=await this._callAPI(key,'You maintain long-term relationships for a construction recruitment firm. Return ONLY valid JSON with exactly these fields: {"checkInReason":"<personalised one sentence reason to reach out>","suggestedDate":"'+sixWks+'","reclassifyFlag":<true if notes mention role change, project win, or labour enquiry, else false>,"reclassifyReason":"<one sentence only if reclassifyFlag true, else empty string>"}',msg,200);
-      console.log('[AI.refreshRS] raw response:', raw);
-      const cleaned=raw.replace(/^```[a-z]*\n?/,'').replace(/\n?```$/,'').trim();
-      const obj=JSON.parse(cleaned);
+      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,system,messages:[{role:'user',content:msg}]})});
+      if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API error '+res.status);}
+      const data=await res.json();
+      const text=data.content[0].text;
+      console.log('[AI.refreshRS] raw response:', text);
+      const clean=text.replace(/```json/g,'').replace(/```/g,'').replace(/^json/,'').trim();
+      const obj=JSON.parse(clean);
       const rs={checkInReason:obj.checkInReason||'',suggestedDate:obj.suggestedDate||sixWks,reclassifyFlag:!!obj.reclassifyFlag,reclassifyReason:obj.reclassifyReason||''};
       DB.update(id,{relationshipSuggestion:rs});
       DET.render(id);
     } catch(e) {
       console.error('[AI.refreshRS] error:', e);
       if(btn) btn.textContent='Refresh';
-      if(rsReason) rsReason.textContent='Error: '+e.message;
+      if(block) block.innerHTML+='<p style="color:var(--red);font-size:12px;margin-top:8px">Error: '+x(e.message)+'</p>';
       else toast('Suggestion error: '+e.message);
     }
   }
