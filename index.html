@@ -1141,7 +1141,7 @@ const DET = {
     const aiContent = !hasKey
       ? `<p class="ai-ph">Add your Anthropic API key in <a onclick="R.go('settings')" style="cursor:pointer;color:var(--gold-light)">Settings</a> to use AI summaries.</p>`
       : c.aiSummary
-        ? `<div class="ai-text">${c.aiSummary.split(/\n\n+/).map(p=>`<p>${x(p.trim())}</p>`).join('')}</div>`
+        ? (() => { const f=c.aiSummary.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').split('\n\n').map(p=>'<p style="margin-bottom:10px;line-height:1.7;font-size:13px;color:rgba(255,255,255,0.9)">'+p.replace(/\n/g,'<br>')+'</p>').join(''); return f; })()
         : `<p class="ai-ph">No summary yet. Tap Refresh to generate one.</p>`;
 
     const infoRows = [
@@ -1592,7 +1592,7 @@ ${ixSummary||'None logged'}`;
       const data = await res.json();
       const sum = data.content[0].text;
       DB.update(id, {aiSummary:sum});
-      if (content) content.innerHTML = sum.split('\n\n').map(p => '<p class="ai-text" style="margin-bottom:10px;line-height:1.7;font-size:13px;color:rgba(255,255,255,0.9)">' + x(p.trim()) + '</p>').join('');
+      if (content) { const formatted = sum.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').split('\n\n').map(p=>'<p style="margin-bottom:10px;line-height:1.7;font-size:13px;color:rgba(255,255,255,0.9)">'+p.replace(/\n/g,'<br>')+'</p>').join(''); content.innerHTML = formatted; }
       if (btn) btn.textContent='Refresh';
     } catch(e) {
       if (btn) btn.textContent='Refresh';
