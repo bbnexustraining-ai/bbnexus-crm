@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>B&amp;B Nexus CRM</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 <style>
 /* ============================================================
    SECTION: DESIGN TOKENS & RESET
@@ -368,6 +369,17 @@ const PASSWD = {
 @media(min-width:1100px){
   #clist{grid-template-columns:repeat(3,1fr)}
 }
+/* ============================================================
+   SECTION: IMPORT MODAL
+   ============================================================ */
+.imp-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px}
+.imp-tab{flex:1;padding:10px;font-size:14px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px}
+.imp-tab.on{color:var(--green);border-bottom-color:var(--green)}
+.imp-panel{display:none}.imp-panel.on{display:block}
+.col-map-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-bottom:8px}
+.col-map-arrow{color:var(--muted);text-align:center;font-size:18px}
+.imp-preview{background:var(--bg);border-radius:var(--rs);padding:10px 12px;font-size:12px;color:var(--text2);margin-top:8px;max-height:120px;overflow-y:auto}
+
 </style>
 </head>
 <body>
@@ -444,6 +456,7 @@ const PASSWD = {
     <!-- DASHBOARD -->
     <div class="screen on" id="s-dash">
       <div class="sh"><h2>Dashboard</h2><p id="dash-date"></p></div>
+      <div id="dash-import-cta" style="display:none;padding:0 16px 16px"></div>
       <div class="sec-title">Pipeline Summary</div>
       <div class="pipe-grid" id="pipe-grid"></div>
       <div class="sec-title">Today's Follow-ups</div>
@@ -931,6 +944,21 @@ const DASH = {
     const cs = DB.all();
     cs.forEach(c => { c.heatScore = calcHeat(c); });
     DB.save();
+
+    // Import CTA — only when zero contacts
+    const cta = document.getElementById('dash-import-cta');
+    if (cta) {
+      if (!cs.length) {
+        cta.style.display='block';
+        cta.innerHTML=`<div style="background:var(--card);border-radius:var(--r);padding:20px;box-shadow:var(--sh);text-align:center">
+          <p style="font-size:15px;font-weight:600;color:var(--green);margin-bottom:6px">No contacts yet</p>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Import your existing contacts to get started.</p>
+          <button class="btn btn-primary" style="width:auto;padding:10px 24px" onclick="IMP.open()">Import Existing CRM</button>
+        </div>`;
+      } else {
+        cta.style.display='none';
+      }
+    }
 
     // Pipeline
     const cnt = {};
@@ -1539,6 +1567,207 @@ const ST = {
 };
 
 /* ============================================================
+   SECTION: CRM IMPORT
+   ============================================================ */
+const IMP = {
+  _rows: [],      // parsed rows (arrays)
+  _headers: [],   // column headers from file
+  _aiContacts: [], // contacts extracted by AI
+
+  APP_FIELDS: [
+    {v:'',      l:'— skip —'},
+    {v:'name',  l:'Name'},
+    {v:'company',l:'Company'},
+    {v:'jobTitle',l:'Job Title'},
+    {v:'phone', l:'Phone'},
+    {v:'email', l:'Email'},
+    {v:'notes', l:'Notes'},
+    {v:'relationshipTier',l:'Relationship Tier'},
+  ],
+
+  open() {
+    this._rows=[]; this._headers=[]; this._aiContacts=[];
+    document.getElementById('imp-file-csv').value='';
+    document.getElementById('imp-map-wrap').style.display='none';
+    document.getElementById('imp-paste').value='';
+    document.getElementById('imp-ai-err').textContent='';
+    document.getElementById('imp-ai-result').style.display='none';
+    this.tab('a');
+    document.getElementById('mo-import').classList.add('on');
+  },
+
+  close() { document.getElementById('mo-import').classList.remove('on'); },
+
+  tab(t) {
+    ['a','b'].forEach(id=>{
+      document.getElementById('imp-tab-'+id).classList.toggle('on', id===t);
+      document.getElementById('imp-panel-'+id).classList.toggle('on', id===t);
+    });
+  },
+
+  // ── CSV parsing ────────────────────────────────────────────
+  _parseCSV(text) {
+    const lines = text.replace(/
+/g,'
+').replace(//g,'
+').split('
+').filter(l=>l.trim());
+    // detect delimiter
+    const first = lines[0];
+    const delim = (first.split('	').length > first.split(',').length) ? '	' : ',';
+    return lines.map(line=>{
+      const row=[]; let cur='', inQ=false;
+      for(let i=0;i<line.length;i++){
+        if(line[i]==='"'){inQ=!inQ;continue;}
+        if(line[i]===delim&&!inQ){row.push(cur.trim());cur='';continue;}
+        cur+=line[i];
+      }
+      row.push(cur.trim());
+      return row;
+    });
+  },
+
+  fileSelected(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext==='xlsx' || ext==='xls') {
+      if (typeof XLSX==='undefined') { toast('SheetJS not loaded — try CSV'); return; }
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        const wb=XLSX.read(ev.target.result,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_csv(ws).split('
+').filter(l=>l.trim()).map(l=>l.split(',').map(c=>c.trim()));
+        this._showMap(rows);
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader=new FileReader();
+      reader.onload=ev=>this._showMap(this._parseCSV(ev.target.result));
+      reader.readAsText(file);
+    }
+  },
+
+  _showMap(rows) {
+    if (rows.length < 2) { toast('File appears empty'); return; }
+    this._headers = rows[0];
+    this._rows = rows.slice(1).filter(r=>r.some(c=>c));
+    const preview = this._rows.slice(0,3).map(r=>'• '+r.slice(0,4).join(' | ')).join('
+');
+    document.getElementById('imp-preview').textContent = preview + (this._rows.length>3?'
+… and '+(this._rows.length-3)+' more rows':'');
+
+    const mapEl = document.getElementById('imp-col-map');
+    mapEl.innerHTML = this._headers.map((h,i)=>`
+      <div class="col-map-grid">
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x(h)}</div>
+        <div class="col-map-arrow">→</div>
+        <select id="imp-map-${i}" style="width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:13px">
+          ${this.APP_FIELDS.map(f=>`<option value="${f.v}"${this._guessField(h)===f.v?' selected':''}>${f.l}</option>`).join('')}
+        </select>
+      </div>`).join('');
+    document.getElementById('imp-map-wrap').style.display='block';
+  },
+
+  _guessField(h) {
+    const hl = h.toLowerCase().replace(/[^a-z]/g,'');
+    if (hl.includes('name') && !hl.includes('company')) return 'name';
+    if (hl.includes('company')||hl.includes('org')||hl.includes('employer')) return 'company';
+    if (hl.includes('title')||hl.includes('role')||hl.includes('position')) return 'jobTitle';
+    if (hl.includes('phone')||hl.includes('mobile')||hl.includes('cell')) return 'phone';
+    if (hl.includes('email')||hl.includes('mail')) return 'email';
+    if (hl.includes('note')||hl.includes('comment')) return 'notes';
+    if (hl.includes('tier')||hl.includes('status')) return 'relationshipTier';
+    return '';
+  },
+
+  doImport() {
+    const map = this._headers.map((_,i)=>document.getElementById('imp-map-'+i).value);
+    if (!map.includes('name')) { toast('Map at least one column to Name'); return; }
+    let count=0;
+    this._rows.forEach(row=>{
+      const obj={};
+      map.forEach((field,i)=>{ if(field&&row[i]) obj[field]=row[i]; });
+      if (!obj.name) return;
+      DB.add(this._makeContact(obj));
+      count++;
+    });
+    this.close();
+    toast(count+' contact'+(count!==1?'s':'')+' imported');
+    DASH.render();
+  },
+
+  // ── AI extraction ──────────────────────────────────────────
+  async aiExtract() {
+    const key=DB.getKey();
+    if (!key) {
+      document.getElementById('imp-ai-err').textContent='No API key set — add it in Settings first.';
+      return;
+    }
+    const text=document.getElementById('imp-paste').value.trim();
+    if (!text) { document.getElementById('imp-ai-err').textContent='Paste some text first.'; return; }
+    document.getElementById('imp-ai-err').textContent='';
+    const btn=document.getElementById('imp-ai-btn');
+    btn.innerHTML='<span class="spinner"></span> Extracting…';
+    btn.disabled=true;
+    try {
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-6',max_tokens:1000,
+          system:'Extract all people/contacts from the user text. Return ONLY a valid JSON array with no other text, markdown, or explanation. Each object must have these fields (use empty string if unknown): name, company, jobTitle, phone, email, notes.',
+          messages:[{role:'user',content:text}]
+        })
+      });
+      if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message||'API error'); }
+      const data=await res.json();
+      const raw=data.content[0].text.trim();
+      // strip possible markdown code fences
+      const json=raw.replace(/^```[a-z]*
+?/,'').replace(/
+?```$/,'').trim();
+      this._aiContacts=JSON.parse(json);
+      if (!Array.isArray(this._aiContacts)||!this._aiContacts.length) throw new Error('No contacts found');
+      document.getElementById('imp-ai-count').textContent=this._aiContacts.length+' contact'+(this._aiContacts.length!==1?'s':'')+' found:';
+      document.getElementById('imp-ai-preview').textContent=this._aiContacts.slice(0,5).map(c=>'• '+(c.name||'?')+' — '+(c.company||'')).join('
+')+(this._aiContacts.length>5?'
+… and '+(this._aiContacts.length-5)+' more':'');
+      document.getElementById('imp-ai-result').style.display='block';
+    } catch(e) {
+      document.getElementById('imp-ai-err').textContent='Error: '+e.message;
+    } finally {
+      btn.textContent='Extract Contacts with AI';
+      btn.disabled=false;
+    }
+  },
+
+  doImportAI() {
+    let count=0;
+    this._aiContacts.forEach(obj=>{ if(obj.name){ DB.add(this._makeContact(obj)); count++; } });
+    this.close();
+    toast(count+' contact'+(count!==1?'s':'')+' imported');
+    DASH.render();
+  },
+
+  _makeContact(obj) {
+    const tier=['warm','cold','active-client'].includes((obj.relationshipTier||'').toLowerCase())
+      ? obj.relationshipTier.toLowerCase() : 'cold';
+    return {
+      id:crypto.randomUUID(), name:obj.name, company:obj.company||'',
+      jobTitle:obj.jobTitle||'', phone:obj.phone||'', email:obj.email||'',
+      linkedIn:'', location:'', howWeMet:'', notes:obj.notes||'',
+      relationshipTier:tier, stage:'new', interactions:[],
+      nextFollowUp:{date:null,method:null,confirmed:false},
+      heatScore:5, aiSummary:'',
+      createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()
+    };
+  }
+};
+
+
+/* ============================================================
    SECTION: UTILITIES
    ============================================================ */
 function x(s) {
@@ -1610,6 +1839,60 @@ AUTH.init();
         <div class="fg"><label>New Password</label><input type="password" id="pr-new" placeholder="Min 6 characters"></div>
         <div class="fg"><label>Confirm Password</label><input type="password" id="pr-conf" placeholder="Repeat new password"></div>
         <button class="btn btn-primary" onclick="PASSWD.reset()">Save New Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     SECTION: CRM IMPORT MODAL
+     ============================================================ -->
+<div class="mo" id="mo-import">
+  <div class="sheet">
+    <div class="m-hdr">
+      <h3>Import Existing CRM</h3>
+      <button class="m-close" onclick="IMP.close()">×</button>
+    </div>
+    <div class="m-body">
+      <div class="imp-tabs">
+        <button class="imp-tab on" id="imp-tab-a" onclick="IMP.tab('a')">A — Upload CSV / Excel</button>
+        <button class="imp-tab" id="imp-tab-b" onclick="IMP.tab('b')">B — Paste &amp; AI Extract</button>
+      </div>
+
+      <!-- Option A -->
+      <div class="imp-panel on" id="imp-panel-a">
+        <div class="fg">
+          <label>Select file (.csv or .xlsx)</label>
+          <input type="file" id="imp-file-csv" accept=".csv,.xlsx" onchange="IMP.fileSelected(event)">
+        </div>
+        <div id="imp-map-wrap" style="display:none">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
+            Match your columns to the app fields. Unmapped columns are skipped.
+          </p>
+          <div id="imp-col-map"></div>
+          <div class="imp-preview" id="imp-preview"></div>
+          <div style="margin-top:14px">
+            <button class="btn btn-primary" onclick="IMP.doImport()">Confirm Import</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Option B -->
+      <div class="imp-panel" id="imp-panel-b">
+        <div class="fg">
+          <label>Paste your contact list</label>
+          <textarea id="imp-paste" placeholder="Paste a list of contacts in any format — names, emails, notes from another CRM, a spreadsheet copy-paste, an email signature block, etc." style="min-height:140px"></textarea>
+        </div>
+        <p id="imp-ai-err" style="color:var(--red);font-size:13px;min-height:18px"></p>
+        <button class="btn btn-primary" id="imp-ai-btn" onclick="IMP.aiExtract()">Extract Contacts with AI</button>
+        <div id="imp-ai-result" style="display:none;margin-top:14px">
+          <p id="imp-ai-count" style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:10px"></p>
+          <div class="imp-preview" id="imp-ai-preview"></div>
+          <div style="margin-top:14px">
+            <button class="btn btn-primary" onclick="IMP.doImportAI()">Import These Contacts</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
