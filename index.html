@@ -743,6 +743,8 @@ const DB = {
     return this._c[i];
   },
 
+  delete(id) { this._c = this._c.filter(c => c.id !== id); this.save(); },
+
   addInteraction(cid, ix) {
     const c = this.get(cid);
     if (!c) return;
@@ -1262,8 +1264,21 @@ const DET = {
         <h4>Interaction Log</h4>
         ${logHTML}
       </div>
-      <div style="height:20px"></div>
+      <div style="padding:0 16px 20px">
+        <button class="btn btn-danger" style="width:100%;background:transparent;color:var(--red);border:1.5px solid var(--red)" onclick="DET.del('${id}')">Delete Contact</button>
+      </div>
     `;
+  },
+
+  del(id) {
+    const c = DB.get(id);
+    if (!c) return;
+    if (!confirm('Delete ' + c.name + '? This cannot be undone.')) return;
+    DB.delete(id);
+    R.go('contacts');
+    CL.render();
+    DASH.render();
+    toast('Contact deleted');
   },
 
   setStage(id, s) { DB.update(id,{stage:s}); this.render(id); toast('Stage updated'); },
@@ -1987,8 +2002,8 @@ const IMP = {
   },
 
   _makeContact(obj) {
-    const tier=['warm','cold','active-client'].includes((obj.relationshipTier||'').toLowerCase())
-      ? obj.relationshipTier.toLowerCase() : 'cold';
+    const tierRaw=(obj.relationshipTier||'').toLowerCase().replace(/[\s_]+/g,'-').trim();
+    const tier=tierRaw==='warm'?'warm':tierRaw==='active-client'||tierRaw==='active client'?'active-client':tierRaw==='family-friend'||tierRaw==='family friend'||tierRaw==='referral'?'warm':tierRaw==='cold'?'cold':'cold';
     return {
       id:crypto.randomUUID(), name:obj.name, company:obj.company||'',
       jobTitle:obj.jobTitle||'', phone:obj.phone||'', email:obj.email||'',
