@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>BBNexus CRM</title>
+<style>
+/* ============================================================
+   SECTION: DESIGN TOKENS & RESET
+   ============================================================ */
+:root {
+  --green: #1B4D2E;
+  --gold: #8B7335;
+  --gold-light: #C9A84C;
+  --navy: #1B2A4A;
+  --bg: #F8F9FA;
+  --card: #FFFFFF;
+  --text: #1A1A1A;
+  --text2: #666666;
+  --muted: #9B9B9B;
+  --border: #E0E0E0;
+  --red: #E63946;
+  --r: 12px;
+  --rs: 8px;
+  --sh: 0 2px 8px rgba(0,0,0,0.08);
+  --sh2: 0 8px 24px rgba(0,0,0,0.12);
+  --tab: 64px;
+  --hdr: 56px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:16px;color:var(--text);background:var(--bg);overflow:hidden}
+h1,h2,h3{font-family:Georgia,'Times New Roman',serif}
+button{cursor:pointer;border:none;background:none;font-family:inherit;font-size:inherit}
+input,textarea,select{font-family:inherit;font-size:16px}
+a{color:var(--gold);text-decoration:none}
+
+/* ============================================================
+   SECTION: APP SHELL
+   ============================================================ */
+#app{height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative;background:var(--bg);box-shadow:0 0 40px rgba(0,0,0,0.1)}
+
+/* ============================================================
+   SECTION: AUTH
+   ============================================================ */
+#auth{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:32px 24px;background:var(--green)}
+.auth-logo{text-align:center;margin-bottom:40px}
+.auth-logo h1{color:#fff;font-size:32px;letter-spacing:-0.5px}
+.auth-logo p{color:var(--gold-light);font-size:14px;margin-top:6px;letter-spacing:0.5px}
+.auth-card{background:var(--card);border-radius:var(--r);padding:28px 24px;width:100%;max-width:360px;box-shadow:var(--sh2)}
+.auth-card h2{color:var(--green);font-size:22px;margin-bottom:24px;text-align:center}
+.auth-err{color:var(--red);font-size:13px;text-align:center;margin-bottom:12px;min-height:18px}
+
+/* ============================================================
+   SECTION: FORM ELEMENTS
+   ============================================================ */
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+.fg input,.fg textarea,.fg select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:16px;color:var(--text);background:var(--bg);outline:none}
+.fg input:focus,.fg textarea:focus{border-color:var(--green);background:#fff}
+.fg textarea{resize:vertical;min-height:80px}
+.fg select{background:#fff}
+
+/* ============================================================
+   SECTION: BUTTONS
+   ============================================================ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;border-radius:var(--rs);font-size:15px;font-weight:600;white-space:nowrap;transition:opacity .15s}
+.btn:active{opacity:.8}
+.btn-primary{background:var(--green);color:#fff;width:100%}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--green);color:var(--green)}
+.btn-danger{background:var(--red);color:#fff;width:100%}
+.btn-sm{padding:7px 14px;font-size:13px}
+.btn-block{width:100%}
+
+/* ============================================================
+   SECTION: MAIN LAYOUT
+   ============================================================ */
+#main{display:none;flex-direction:column;height:100%}
+#main.on{display:flex}
+.hdr{height:var(--hdr);background:var(--green);display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+.hdr h1{color:#fff;font-size:20px}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.hdr-user{color:var(--gold-light);font-size:13px;font-weight:600}
+.btn-logout{background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.screens{flex:1;overflow:hidden;position:relative}
+.screen{display:none;position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:16px}
+.screen.on{display:block}
+
+/* ============================================================
+   SECTION: TAB BAR
+   ============================================================ */
+.tabs{height:var(--tab);background:var(--card);border-top:1px solid var(--border);display:flex;flex-shrink:0;box-shadow:0 -2px 8px rgba(0,0,0,0.06)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--muted);font-size:11px;font-weight:500;padding:8px 0;border-top:3px solid transparent}
+.tab.on{color:var(--green);border-top-color:var(--gold)}
+.tab svg{width:22px;height:22px}
+
+/* ============================================================
+   SECTION: SCREEN HEADERS & LAYOUT
+   ============================================================ */
+.sh{padding:16px 16px 8px}
+.sh h2{font-size:20px;color:var(--green)}
+.sh p{font-size:13px;color:var(--text2);margin-top:2px}
+.sec-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);padding:12px 16px 8px}
+
+/* ============================================================
+   SECTION: DASHBOARD
+   ============================================================ */
+.pipe-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:0 16px;margin-bottom:4px}
+.stat{background:var(--card);border-radius:var(--rs);padding:12px 14px;box-shadow:var(--sh)}
+.stat-val{font-size:26px;font-weight:700;color:var(--green);line-height:1}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px}
+.fu-list{padding:0 16px;display:flex;flex-direction:column;gap:8px}
+.fu-card{background:var(--card);border-radius:var(--rs);padding:12px 14px;box-shadow:var(--sh);display:flex;align-items:center;gap:12px;cursor:pointer}
+.fu-card.ov{border-left:3px solid var(--red)}
+.fu-info{flex:1;min-width:0}
+.fu-name{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fu-co{font-size:13px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fu-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.ov-lbl{font-size:11px;font-weight:700;color:var(--red)}
+.empty{text-align:center;padding:24px 16px;color:var(--muted);font-size:14px}
+
+/* ============================================================
+   SECTION: HEAT SCORE
+   ============================================================ */
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block}
+.dot.hot{background:#E63946}
+.dot.warm{background:#C9A84C}
+.dot.cold{background:#9B9B9B}
+.hs{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600}
+
+/* ============================================================
+   SECTION: CONTACT CARDS
+   ============================================================ */
+.c-card{background:var(--card);border-radius:var(--r);margin:0 16px 10px;box-shadow:var(--sh);overflow:hidden;cursor:pointer}
+.c-card-hdr{padding:14px 14px 10px;display:flex;align-items:flex-start;gap:12px}
+.avatar{width:44px;height:44px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;font-family:Georgia,serif;flex-shrink:0}
+.c-info{flex:1;min-width:0}
+.c-name{font-weight:700;font-size:16px}
+.c-co{font-size:13px;color:var(--text2);margin-top:1px}
+.c-badges{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center}
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px}
+.b-warm{background:#FFF3CD;color:#7a6430}
+.b-cold{background:#F0F0F0;color:#666}
+.b-active-client{background:#D4EDDA;color:#1B4D2E}
+.b-stage{background:var(--bg);color:var(--text2);border:1px solid var(--border)}
+.c-ints{border-top:1px solid var(--bg);padding:8px 14px}
+.int-prev{font-size:12px;color:var(--text2);padding:4px 0;border-bottom:1px solid var(--bg);display:flex;gap:6px;align-items:baseline}
+.int-prev:last-child{border-bottom:none}
+.int-chip{font-size:11px;font-weight:600;color:var(--green);background:rgba(27,77,46,0.08);padding:1px 6px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.c-foot{padding:8px 14px 12px;display:flex;align-items:center;justify-content:space-between}
+.fu-chip{font-size:12px;color:var(--gold);font-weight:600}
+.log-btn{background:var(--green);color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600}
+
+/* ============================================================
+   SECTION: CONTACT LIST / SEARCH
+   ============================================================ */
+.search-wrap{padding:12px 16px 0;position:sticky;top:0;background:var(--bg);z-index:10}
+.search-inner{position:relative}
+.search-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.search-in{width:100%;padding:10px 14px 10px 38px;border:1.5px solid var(--border);border-radius:24px;font-size:15px;background:var(--card);outline:none}
+.search-in:focus{border-color:var(--green)}
+.chips{display:flex;gap:6px;padding:10px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;background:var(--card);border:1.5px solid var(--border);color:var(--text2);white-space:nowrap;flex-shrink:0}
+.chip.on{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* ============================================================
+   SECTION: FAB
+   ============================================================ */
+.fab{position:fixed;bottom:calc(var(--tab) + 20px);right:20px;width:56px;height:56px;border-radius:50%;background:var(--gold);color:#fff;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.2);z-index:100;line-height:1}
+.fab:active{background:#7a6430}
+
+/* ============================================================
+   SECTION: MODALS
+   ============================================================ */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:flex-end}
+.mo.on{display:flex}
+.sheet{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:480px;margin:0 auto;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.m-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:5}
+.m-hdr h3{font-size:18px;color:var(--green)}
+.m-close{width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text2)}
+.m-body{padding:16px 20px 32px}
+.m-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:10px;position:sticky;bottom:0;background:var(--card)}
+
+/* ============================================================
+   SECTION: INTERACTION TYPE GRID
+   ============================================================ */
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.type-btn{padding:10px 6px;border-radius:var(--rs);border:1.5px solid var(--border);font-size:12px;font-weight:600;text-align:center;color:var(--text2);line-height:1.3}
+.type-btn.on{border-color:var(--green);background:rgba(27,77,46,0.08);color:var(--green)}
+
+/* ============================================================
+   SECTION: FOLLOW-UP SUGGESTION
+   ============================================================ */
+.fu-sug{background:rgba(27,77,46,0.06);border:1.5px solid rgba(27,77,46,0.2);border-radius:var(--rs);padding:14px 16px;margin-top:12px}
+.fu-sug h4{font-size:13px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.fu-sug p{font-size:14px;color:var(--text);margin-bottom:10px}
+.fu-sug-acts{display:flex;gap:8px}
+.fu-edit-f{margin-top:10px;display:none;flex-direction:column;gap:8px}
+.fu-edit-f.on{display:flex}
+
+/* ============================================================
+   SECTION: CONTACT DETAIL
+   ============================================================ */
+.back-btn{display:flex;align-items:center;gap:8px;padding:12px 16px;color:var(--green);font-weight:600;font-size:15px;cursor:pointer}
+.ai-card{background:var(--navy);color:#fff;border-radius:var(--r);margin:0 16px 12px;padding:16px}
+.ai-card h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gold-light);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.ai-text{font-size:14px;line-height:1.6;color:rgba(255,255,255,0.9)}
+.ai-ph{font-size:14px;color:rgba(255,255,255,0.5);font-style:italic}
+.btn-ref{background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.ci-card{background:var(--card);border-radius:var(--r);margin:0 16px 12px;padding:16px;box-shadow:var(--sh)}
+.ci-row{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--bg);font-size:14px;align-items:flex-start}
+.ci-row:last-child{border-bottom:none}
+.ci-lbl{font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:0.4px;width:80px;flex-shrink:0;padding-top:1px}
+.stage-sel{background:var(--card);border-radius:var(--r);margin:0 16px 12px;padding:16px;box-shadow:var(--sh)}
+.stage-sel h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px}
+.stage-opts{display:flex;flex-wrap:wrap;gap:6px}
+.stage-opt{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);color:var(--text2)}
+.stage-opt.on{background:var(--green);color:#fff;border-color:var(--green)}
+.nfu-card{background:var(--card);border-radius:var(--r);margin:0 16px 12px;padding:16px;box-shadow:var(--sh)}
+.nfu-card h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px}
+.nfu-conf{display:flex;align-items:center;gap:10px}
+.nfu-date{font-weight:700;font-size:15px;color:var(--green)}
+.nfu-meth{font-size:13px;color:var(--text2)}
+.log-card{background:var(--card);border-radius:var(--r);margin:0 16px 12px;box-shadow:var(--sh);overflow:hidden}
+.log-card h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);padding:14px 16px 10px;border-bottom:1px solid var(--bg)}
+.int-entry{padding:12px 16px;border-bottom:1px solid var(--bg)}
+.int-entry:last-child{border-bottom:none}
+.int-e-hdr{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+.int-date{font-size:12px;color:var(--muted)}
+.int-by{font-size:11px;color:var(--gold);font-weight:600}
+.int-outcome{font-size:14px;color:var(--text)}
+.int-exp{font-size:12px;color:var(--green);font-weight:600;margin-top:4px;display:inline-block}
+.int-det{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);font-size:13px;color:var(--text2);line-height:1.5}
+.int-det.on{display:block}
+
+/* ============================================================
+   SECTION: COLLAPSIBLE
+   ============================================================ */
+.coll-tog{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--green);padding:8px 0;width:100%;text-align:left}
+.coll-body{display:none}
+.coll-body.on{display:block}
+
+/* ============================================================
+   SECTION: SETTINGS
+   ============================================================ */
+.set-sec{background:var(--card);border-radius:var(--r);margin:0 16px 12px;padding:16px;box-shadow:var(--sh)}
+.set-sec h3{font-size:15px;color:var(--green);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--bg)}
+.api-wrap{position:relative}
+.api-wrap input{padding-right:52px}
+.sh-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:600;color:var(--muted)}
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bg);font-size:14px}
+.set-row:last-child{border-bottom:none}
+
+/* ============================================================
+   SECTION: UTILS
+   ============================================================ */
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
+.divider{height:1px;background:var(--border);margin:12px 0}
+.t-muted{color:var(--muted);font-size:13px}
+.t-danger{color:var(--red)}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:calc(var(--tab) + 16px);left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:24px;font-size:14px;font-weight:600;z-index:500;transition:transform .25s;white-space:nowrap;box-shadow:var(--sh2)}
+.toast.on{transform:translateX(-50%) translateY(0)}
+@media(min-width:481px){.fab{right:calc(50% - 240px + 20px)}.mo{justify-content:center}}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ============================================================
+     SECTION: AUTH SCREEN
+     ============================================================ -->
+<div id="auth">
+  <div class="auth-logo">
+    <h1>BBNexus</h1>
+    <p>CONSTRUCTION BD CRM</p>
+  </div>
+  <div class="auth-card">
+    <h2>Sign In</h2>
+    <div class="fg">
+      <label for="lu">Username</label>
+      <input type="text" id="lu" placeholder="Your name" autocomplete="username">
+    </div>
+    <div class="fg">
+      <label for="lp">Password</label>
+      <input type="password" id="lp" placeholder="Password" autocomplete="current-password">
+    </div>
+    <div class="auth-err" id="auth-err"></div>
+    <button class="btn btn-primary" onclick="AUTH.login()">Sign In</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION: MAIN APP
+     ============================================================ -->
+<div id="main">
+
+  <div class="hdr">
+    <h1>BBNexus CRM</h1>
+    <div class="hdr-right">
+      <span class="hdr-user" id="hdr-user"></span>
+      <button class="btn-logout" onclick="AUTH.logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="screens">
+
+    <!-- DASHBOARD -->
+    <div class="screen on" id="s-dash">
+      <div class="sh"><h2>Dashboard</h2><p id="dash-date"></p></div>
+      <div class="sec-title">Pipeline Summary</div>
+      <div class="pipe-grid" id="pipe-grid"></div>
+      <div class="sec-title">Today's Follow-ups</div>
+      <div class="fu-list" id="fu-today"></div>
+      <div class="sec-title">This Week's Follow-ups</div>
+      <div class="fu-list" id="fu-week"></div>
+      <div class="sec-title">Overdue Follow-ups</div>
+      <div class="fu-list" id="fu-ov"></div>
+    </div>
+
+    <!-- CONTACTS -->
+    <div class="screen" id="s-contacts">
+      <div class="search-wrap">
+        <div class="search-inner">
+          <svg class="search-ico" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/></svg>
+          <input type="search" class="search-in" id="csearch" placeholder="Search name or company…" oninput="CL.filter()">
+        </div>
+        <div class="chips" id="fchips"></div>
+      </div>
+      <div id="clist" style="padding-top:8px"></div>
+    </div>
+
+    <!-- DETAIL -->
+    <div class="screen" id="s-detail">
+      <div id="detail"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="screen" id="s-settings">
+      <div class="sh"><h2>Settings</h2></div>
+
+      <div class="set-sec">
+        <h3>Anthropic API Key</h3>
+        <div class="fg">
+          <div class="api-wrap">
+            <input type="password" id="api-key" placeholder="sk-ant-…">
+            <button class="sh-btn" onclick="ST.toggleKey()">Show</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="ST.saveKey()">Save API Key</button>
+        <p class="t-muted mt8">Used for AI summaries. Stored locally in your browser.</p>
+      </div>
+
+      <div class="set-sec">
+        <h3>Data Backup</h3>
+        <div class="set-row">
+          <span>Export all data</span>
+          <button class="btn btn-outline btn-sm" onclick="ST.exportData()">Export JSON</button>
+        </div>
+        <div class="set-row">
+          <span>Import / restore</span>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('imp-file').click()">Import JSON</button>
+          <input type="file" id="imp-file" accept=".json" style="display:none" onchange="ST.importData(event)">
+        </div>
+      </div>
+
+      <div class="set-sec">
+        <h3>Account</h3>
+        <div class="set-row"><span>Logged in as</span><strong id="set-user"></strong></div>
+        <div class="mt12"><button class="btn btn-danger" onclick="AUTH.logout()">Logout</button></div>
+      </div>
+    </div>
+
+  </div><!-- /screens -->
+
+  <div class="tabs">
+    <button class="tab on" id="tab-dash" onclick="R.go('dash')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Dashboard
+    </button>
+    <button class="tab" id="tab-contacts" onclick="R.go('contacts')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Contacts
+    </button>
+    <button class="tab" id="tab-settings" onclick="R.go('settings')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3"/></svg>
+      Settings
+    </button>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- FAB -->
+<button class="fab" id="fab" style="display:none" onclick="M.openAdd()" aria-label="Add contact">+</button>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ============================================================
+     SECTION: ADD / EDIT CONTACT MODAL
+     ============================================================ -->
+<div class="mo" id="mo-add">
+  <div class="sheet">
+    <div class="m-hdr">
+      <h3 id="mo-add-title">Add Contact</h3>
+      <button class="m-close" onclick="M.close('mo-add')">×</button>
+    </div>
+    <div class="m-body">
+      <div class="fg"><label>Name *</label><input type="text" id="ac-name" placeholder="Full name"></div>
+      <div class="fg"><label>Company *</label><input type="text" id="ac-co" placeholder="Company name"></div>
+      <button class="coll-tog" onclick="M.coll('ac-more')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" id="ac-more-ico"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        More details
+      </button>
+      <div class="coll-body" id="ac-more">
+        <div class="fg"><label>Job Title</label><input type="text" id="ac-title" placeholder="e.g. Procurement Manager"></div>
+        <div class="fg"><label>Phone</label><input type="tel" id="ac-phone" placeholder="+1 555 000 0000"></div>
+        <div class="fg"><label>Email</label><input type="email" id="ac-email" placeholder="name@company.com"></div>
+        <div class="fg"><label>LinkedIn URL</label><input type="url" id="ac-li" placeholder="linkedin.com/in/…"></div>
+        <div class="fg"><label>Location</label><input type="text" id="ac-loc" placeholder="City, State"></div>
+        <div class="fg"><label>How We Met</label><input type="text" id="ac-met" placeholder="e.g. Trade show, referral"></div>
+        <div class="fg">
+          <label>Relationship Tier</label>
+          <select id="ac-tier">
+            <option value="cold">Cold</option>
+            <option value="warm">Warm</option>
+            <option value="active-client">Active Client</option>
+          </select>
+        </div>
+        <div class="fg"><label>Notes</label><textarea id="ac-notes" placeholder="Initial notes…"></textarea></div>
+      </div>
+    </div>
+    <div class="m-foot" id="mo-add-foot">
+      <button class="btn btn-outline" style="flex:1" onclick="M.close('mo-add')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" id="mo-add-save" onclick="M.saveContact()">Save Contact</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION: LOG INTERACTION MODAL
+     ============================================================ -->
+<div class="mo" id="mo-log">
+  <div class="sheet">
+    <div class="m-hdr">
+      <h3 id="log-title">Log Interaction</h3>
+      <button class="m-close" onclick="M.close('mo-log')">×</button>
+    </div>
+    <div class="m-body">
+      <div class="fg">
+        <label>Interaction Type *</label>
+        <div class="type-grid" id="type-grid"></div>
+      </div>
+      <div class="fg mt12">
+        <label>Outcome * <span class="t-muted">(one sentence)</span></label>
+        <input type="text" id="li-out" placeholder="e.g. Discussed Q3 pipeline, positive response">
+      </div>
+      <div class="fg"><label>Notes</label><textarea id="li-notes" placeholder="Detailed notes…"></textarea></div>
+      <button class="coll-tog" onclick="M.coll('li-tran-wrap')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" id="li-tran-wrap-ico"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Paste transcript
+      </button>
+      <div class="coll-body" id="li-tran-wrap">
+        <div class="fg"><textarea id="li-tran" placeholder="Paste transcript here…" style="min-height:100px"></textarea></div>
+      </div>
+      <div class="fg mt8">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;font-size:14px;font-weight:400">
+          <input type="checkbox" id="li-approx"> Approximate date (logging late)
+        </label>
+      </div>
+      <div id="fu-sug-wrap" style="display:none">
+        <div class="divider"></div>
+        <div class="fu-sug">
+          <h4>Suggested Next Follow-up</h4>
+          <p id="fu-sug-txt"></p>
+          <div class="fu-sug-acts">
+            <button class="btn btn-primary btn-sm" onclick="M.confirmFU()">Confirm</button>
+            <button class="btn btn-outline btn-sm" onclick="M.editFU()">Edit</button>
+          </div>
+          <div class="fu-edit-f" id="fu-edit-f">
+            <div class="fg"><label>Date</label><input type="date" id="fu-date"></div>
+            <div class="fg">
+              <label>Method</label>
+              <select id="fu-meth">
+                <option value="call">Call</option>
+                <option value="email">Email</option>
+                <option value="text">Text</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="meeting">Meeting</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="M.confirmEditFU()">Save Follow-up</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="m-foot" id="log-foot">
+      <button class="btn btn-outline" style="flex:1" onclick="M.close('mo-log')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="M.saveLog()">Log Interaction</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   SECTION: CONSTANTS
+   ============================================================ */
+const USERS = { shyan:'shyan123', amal:'amal123', rahul:'rahul123' };
+
+const STAGES = ['new','contacted','engaged','meeting-scheduled','meeting-held',
+  'proposal-sent','placement-confirmed','active-client','parked'];
+
+const STAGE_LBL = {
+  'new':'New','contacted':'Contacted','engaged':'Engaged',
+  'meeting-scheduled':'Mtg Scheduled','meeting-held':'Mtg Held',
+  'proposal-sent':'Proposal Sent','placement-confirmed':'Placed',
+  'active-client':'Active Client','parked':'Parked'
+};
+
+const TIER_LBL = { warm:'Warm', cold:'Cold', 'active-client':'Active Client' };
+
+const INT_TYPES = [
+  {v:'call-answered',l:'Call\nAnswered'},
+  {v:'call-no-answer',l:'Call\nNo Answer'},
+  {v:'voicemail-left',l:'Voicemail\nLeft'},
+  {v:'email-sent',l:'Email\nSent'},
+  {v:'email-received',l:'Email\nReceived'},
+  {v:'text-sent',l:'Text\nSent'},
+  {v:'text-received',l:'Text\nReceived'},
+  {v:'linkedin-message',l:'LinkedIn\nMessage'},
+  {v:'meeting-in-person',l:'Meeting\nIn Person'},
+  {v:'meeting-online',l:'Meeting\nOnline'},
+  {v:'not-interested',l:'Not\nInterested'}
+];
+
+const INT_NAME = {
+  'call-answered':'Call ✓','call-no-answer':'No Answer','voicemail-left':'Voicemail',
+  'email-sent':'Email Sent','email-received':'Email Rcvd','text-sent':'Text Sent',
+  'text-received':'Text Rcvd','linkedin-message':'LinkedIn',
+  'meeting-in-person':'Meeting IRL','meeting-online':'Meeting 🖥','not-interested':'Not Interested'
+};
+
+/* ============================================================
+   SECTION: DATA LAYER (localStorage)
+   ============================================================ */
+const DB = {
+  _c: [],
+
+  load() {
+    const r = localStorage.getItem('bb_contacts');
+    this._c = r ? JSON.parse(r) : [];
+  },
+
+  save() { localStorage.setItem('bb_contacts', JSON.stringify(this._c)); },
+
+  all() { return this._c; },
+
+  get(id) { return this._c.find(c => c.id === id) || null; },
+
+  add(c) { this._c.push(c); this.save(); },
+
+  update(id, u) {
+    const i = this._c.findIndex(c => c.id === id);
+    if (i < 0) return null;
+    this._c[i] = { ...this._c[i], ...u, updatedAt: new Date().toISOString() };
+    this.save();
+    return this._c[i];
+  },
+
+  addInteraction(cid, ix) {
+    const c = this.get(cid);
+    if (!c) return;
+    c.interactions.unshift(ix);
+    c.updatedAt = new Date().toISOString();
+    this.save();
+  },
+
+  getKey() { return localStorage.getItem('bb_api_key') || ''; },
+  setKey(k) { localStorage.setItem('bb_api_key', k); },
+
+  export() { return { contacts: this._c, exportedAt: new Date().toISOString(), v: 1 }; },
+
+  import(d) {
+    if (d && Array.isArray(d.contacts)) { this._c = d.contacts; this.save(); return true; }
+    return false;
+  }
+};
+
+/* ============================================================
+   SECTION: HEAT SCORE
+   ============================================================ */
+function calcHeat(c) {
+  const ints = c.interactions || [];
+  let s = 5;
+  if (ints.length > 0) {
+    const last = ints[0];
+    const days = (Date.now() - new Date(last.timestamp)) / 86400000;
+    s = Math.max(1, s - Math.floor(days / 7) * 0.5);
+    const t = last.interactionType;
+    if (['call-answered','email-received','meeting-in-person','meeting-online'].includes(t)) s += 2;
+    else if (['call-no-answer','text-received'].includes(t)) s -= 1;
+    else if (t === 'not-interested') s -= 3;
+  }
+  return Math.min(10, Math.max(1, Math.round(s * 10) / 10));
+}
+
+function band(sc) { return sc >= 7 ? 'hot' : sc >= 4 ? 'warm' : 'cold'; }
+function hcol(sc) { return sc >= 7 ? '#E63946' : sc >= 4 ? '#C9A84C' : '#9B9B9B'; }
+
+/* ============================================================
+   SECTION: DATE UTILITIES
+   ============================================================ */
+function bizDays(date, n) {
+  const d = new Date(date);
+  let added = 0;
+  while (added < n) { d.setDate(d.getDate()+1); const w=d.getDay(); if(w!==0&&w!==6) added++; }
+  return d;
+}
+
+function calDays(date, n) { const d=new Date(date); d.setDate(d.getDate()+n); return d; }
+
+function fmtISO(d) { return (typeof d==='string'?new Date(d):d).toISOString().split('T')[0]; }
+
+function fmtDisp(s) {
+  if (!s) return '';
+  return new Date(s+'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+}
+
+function today() { return fmtISO(new Date()); }
+
+function relDate(ts) {
+  if (!ts) return '';
+  const d = Math.floor((Date.now()-new Date(ts))/86400000);
+  if (d===0) return 'Today';
+  if (d===1) return 'Yesterday';
+  if (d<7) return d+'d ago';
+  if (d<30) return Math.floor(d/7)+'w ago';
+  return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+/* ============================================================
+   SECTION: FOLLOW-UP SCHEDULER
+   ============================================================ */
+function suggestFU(contact, newInt) {
+  const t = newInt.interactionType;
+  const now = new Date();
+
+  if (t === 'call-no-answer') return { date: fmtISO(bizDays(now,3)), method:'call' };
+
+  if (t === 'voicemail-left') {
+    const consec = countConsecutive(contact.interactions, 'voicemail-left');
+    return { date: fmtISO(bizDays(now,5)), method: consec >= 2 ? 'email' : 'call' };
+  }
+
+  if (t === 'email-sent') {
+    const consec = countConsecutive(contact.interactions, 'email-sent');
+    return { date: fmtISO(bizDays(now,5)), method: consec >= 2 ? 'call' : 'email' };
+  }
+
+  if (['call-answered','email-received','meeting-in-person','meeting-online'].includes(t)) {
+    const meth = t==='email-received' ? 'email' : 'call';
+    return { date: fmtISO(bizDays(now,2)), method: meth };
+  }
+
+  if (t === 'not-interested') return { date: fmtISO(calDays(now,60)), method:'call' };
+
+  return { date: fmtISO(bizDays(now,5)), method:'call' };
+}
+
+function countConsecutive(ints, type) {
+  let n = 0;
+  for (const i of (ints||[])) { if (i.interactionType===type) n++; else break; }
+  return n;
+}
+
+/* ============================================================
+   SECTION: AUTH
+   ============================================================ */
+const AUTH = {
+  user: null,
+
+  init() {
+    const u = sessionStorage.getItem('bb_user');
+    if (u) { this.user = u; this._show(); }
+  },
+
+  login() {
+    const u = document.getElementById('lu').value.trim().toLowerCase();
+    const p = document.getElementById('lp').value;
+    const err = document.getElementById('auth-err');
+    if (!u||!p) { err.textContent='Enter username and password.'; return; }
+    if (USERS[u] && USERS[u]===p) {
+      this.user = u.charAt(0).toUpperCase()+u.slice(1);
+      sessionStorage.setItem('bb_user', this.user);
+      err.textContent='';
+      this._show();
+    } else {
+      err.textContent='Invalid username or password.';
+    }
+  },
+
+  logout() {
+    sessionStorage.removeItem('bb_user');
+    this.user = null;
+    document.getElementById('auth').style.display='flex';
+    document.getElementById('main').classList.remove('on');
+    document.getElementById('fab').style.display='none';
+    document.getElementById('lu').value='';
+    document.getElementById('lp').value='';
+  },
+
+  _show() {
+    document.getElementById('auth').style.display='none';
+    document.getElementById('main').classList.add('on');
+    document.getElementById('hdr-user').textContent=this.user;
+    document.getElementById('set-user').textContent=this.user;
+    R.go('dash');
+  }
+};
+
+/* ============================================================
+   SECTION: ROUTER
+   ============================================================ */
+const R = {
+  cur: 'dash',
+  detailId: null,
+
+  go(screen, id) {
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+
+    const scr = document.getElementById('s-'+screen);
+    if (!scr) return;
+    scr.classList.add('on');
+    scr.scrollTop = 0;
+
+    const tab = document.getElementById('tab-'+screen);
+    if (tab) tab.classList.add('on');
+
+    this.cur = screen;
+    const fab = document.getElementById('fab');
+    fab.style.display = (screen==='dash'||screen==='contacts') ? 'flex' : 'none';
+
+    if (screen==='dash') DASH.render();
+    if (screen==='contacts') CL.render();
+    if (screen==='detail' && id) { this.detailId=id; DET.render(id); }
+    if (screen==='settings') ST.init();
+  }
+};
+
+/* ============================================================
+   SECTION: DASHBOARD
+   ============================================================ */
+const DASH = {
+  render() {
+    const d = new Date();
+    document.getElementById('dash-date').textContent =
+      d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+    const cs = DB.all();
+    cs.forEach(c => { c.heatScore = calcHeat(c); });
+    DB.save();
+
+    // Pipeline
+    const cnt = {};
+    STAGES.forEach(s=>cnt[s]=0);
+    cs.forEach(c=>{ if(cnt[c.stage]!==undefined) cnt[c.stage]++; });
+
+    const pg = document.getElementById('pipe-grid');
+    pg.innerHTML = `<div class="stat"><div class="stat-val">${cs.length}</div><div class="stat-lbl">Total</div></div>`
+      + STAGES.map(s=>`<div class="stat"><div class="stat-val">${cnt[s]}</div><div class="stat-lbl">${STAGE_LBL[s]}</div></div>`).join('');
+
+    const td = today();
+    const conf = cs.filter(c=>c.nextFollowUp&&c.nextFollowUp.confirmed&&c.nextFollowUp.date);
+    const wkEnd = fmtISO(calDays(new Date(),7));
+
+    this._fuList('fu-today', conf.filter(c=>c.nextFollowUp.date===td).sort((a,b)=>b.heatScore-a.heatScore), false);
+    this._fuList('fu-week',  conf.filter(c=>c.nextFollowUp.date>td&&c.nextFollowUp.date<=wkEnd).sort((a,b)=>b.heatScore-a.heatScore), false);
+    this._fuList('fu-ov',    conf.filter(c=>c.nextFollowUp.date<td).sort((a,b)=>b.heatScore-a.heatScore), true);
+  },
+
+  _fuList(id, list, ov) {
+    const el = document.getElementById(id);
+    if (!list.length) { el.innerHTML='<div class="empty">Nothing here</div>'; return; }
+    el.innerHTML = list.map(c => {
+      const sc = c.heatScore||5;
+      const extra = ov
+        ? `<div class="ov-lbl">${Math.floor((Date.now()-new Date(c.nextFollowUp.date+'T00:00:00'))/86400000)}d overdue</div>`
+        : `<div class="fu-meta">${fmtDisp(c.nextFollowUp.date)} · ${c.nextFollowUp.method}</div>`;
+      return `<div class="fu-card${ov?' ov':''}" onclick="R.go('detail','${c.id}')">
+        <div class="dot ${band(sc)}"></div>
+        <div class="fu-info">
+          <div class="fu-name">${x(c.name)}</div>
+          <div class="fu-co">${x(c.company)}</div>
+          ${extra}
+        </div>
+        <div class="hs" style="color:${hcol(sc)}">${sc}</div>
+      </div>`;
+    }).join('');
+  }
+};
+
+/* ============================================================
+   SECTION: CONTACT LIST
+   ============================================================ */
+const CL = {
+  af: {},
+
+  render() { this._chips(); this.filter(); },
+
+  _chips() {
+    const defs = [
+      {k:'tier',v:'warm',l:'Warm'},{k:'tier',v:'cold',l:'Cold'},{k:'tier',v:'active-client',l:'Active Client'},
+      {k:'heat',v:'hot',l:'🔴 Hot'},{k:'heat',v:'warm',l:'🟡 Warm'},{k:'heat',v:'cold',l:'⚪ Cold'},
+    ];
+    STAGES.slice(0,6).forEach(s=>defs.push({k:'stage',v:s,l:STAGE_LBL[s]}));
+    const members = new Set();
+    DB.all().forEach(c=>(c.interactions||[]).forEach(i=>i.createdBy&&members.add(i.createdBy)));
+    members.forEach(m=>defs.push({k:'member',v:m,l:'By: '+m}));
+    document.getElementById('fchips').innerHTML = defs.map(d=>
+      `<button class="chip${this.af[d.k]===d.v?' on':''}" onclick="CL.tog('${d.k}','${d.v}')">${d.l}</button>`
+    ).join('');
+  },
+
+  tog(k,v) { this.af[k]===v ? delete this.af[k] : (this.af[k]=v); this._chips(); this.filter(); },
+
+  filter() {
+    const q = (document.getElementById('csearch')?.value||'').toLowerCase().trim();
+    let cs = DB.all().map(c=>({...c, heatScore: calcHeat(c)}));
+    if (q) cs = cs.filter(c=>c.name.toLowerCase().includes(q)||c.company.toLowerCase().includes(q));
+    if (this.af.tier) cs = cs.filter(c=>c.relationshipTier===this.af.tier);
+    if (this.af.stage) cs = cs.filter(c=>c.stage===this.af.stage);
+    if (this.af.heat) cs = cs.filter(c=>band(c.heatScore)===this.af.heat);
+    if (this.af.member) cs = cs.filter(c=>(c.interactions||[]).some(i=>i.createdBy===this.af.member));
+    cs.sort((a,b)=>b.heatScore-a.heatScore);
+    // persist heat scores
+    cs.forEach(c=>{ const o=DB.get(c.id); if(o) o.heatScore=c.heatScore; });
+    DB.save();
+    this._list(cs);
+  },
+
+  _list(cs) {
+    const el = document.getElementById('clist');
+    if (!cs.length) { el.innerHTML='<div class="empty">No contacts found</div>'; return; }
+    el.innerHTML = cs.map(c=>this._card(c)).join('');
+  },
+
+  _card(c) {
+    const sc = c.heatScore||5;
+    const ini = c.name.split(' ').map(n=>n[0]||'').join('').substring(0,2).toUpperCase();
+    const last3 = (c.interactions||[]).slice(0,3);
+    const ints = last3.length ? `<div class="c-ints">${last3.map(i=>`
+      <div class="int-prev">
+        <span class="int-chip">${INT_NAME[i.interactionType]||i.interactionType}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x(i.outcome)}</span>
+        <span style="margin-left:auto;white-space:nowrap;color:var(--muted)">${relDate(i.timestamp)}</span>
+      </div>`).join('')}</div>` : '';
+    const li = (c.interactions||[])[0];
+    const liTxt = li ? `<span style="font-size:12px;color:var(--muted)">${INT_NAME[li.interactionType]} · ${relDate(li.timestamp)}</span>` : '';
+    const fuTxt = c.nextFollowUp&&c.nextFollowUp.confirmed&&c.nextFollowUp.date
+      ? `<span class="fu-chip">📅 ${fmtDisp(c.nextFollowUp.date)}</span>` : '';
+    return `<div class="c-card" onclick="R.go('detail','${c.id}')">
+      <div class="c-card-hdr">
+        <div class="avatar">${ini}</div>
+        <div class="c-info">
+          <div class="c-name">${x(c.name)}</div>
+          <div class="c-co">${x(c.company)}${c.jobTitle?' · '+x(c.jobTitle):''}</div>
+          <div class="c-badges">
+            <div class="hs"><div class="dot ${band(sc)}"></div><span style="color:${hcol(sc)}">${sc}</span></div>
+            <span class="badge b-${c.relationshipTier}">${TIER_LBL[c.relationshipTier]||c.relationshipTier}</span>
+            <span class="badge b-stage">${STAGE_LBL[c.stage]||c.stage}</span>
+          </div>
+        </div>
+      </div>
+      ${ints}
+      <div class="c-foot">
+        <div style="display:flex;flex-direction:column;gap:2px">${liTxt}${fuTxt}</div>
+        <button class="log-btn" onclick="event.stopPropagation();M.openLog('${c.id}')">Log</button>
+      </div>
+    </div>`;
+  }
+};
+
+/* ============================================================
+   SECTION: CONTACT DETAIL
+   ============================================================ */
+const DET = {
+  render(id) {
+    const c = DB.get(id);
+    if (!c) { R.go('contacts'); return; }
+    c.heatScore = calcHeat(c);
+    DB.save();
+
+    const sc = c.heatScore;
+    const ini = c.name.split(' ').map(n=>n[0]||'').join('').substring(0,2).toUpperCase();
+    const hasKey = !!DB.getKey();
+
+    const aiContent = !hasKey
+      ? `<p class="ai-ph">Add your Anthropic API key in <a onclick="R.go('settings')" style="cursor:pointer;color:var(--gold-light)">Settings</a> to use AI summaries.</p>`
+      : c.aiSummary
+        ? `<p class="ai-text">${x(c.aiSummary)}</p>`
+        : `<p class="ai-ph">No summary yet. Tap Refresh to generate one.</p>`;
+
+    const infoRows = [
+      ['Company', c.company],['Title', c.jobTitle],['Phone', c.phone],
+      ['Email', c.email],['LinkedIn', c.linkedIn],['Location', c.location],
+      ['How Met', c.howWeMet],['Notes', c.notes]
+    ].filter(r=>r[1]);
+
+    const nfu = c.nextFollowUp;
+    const nfuHTML = nfu && nfu.confirmed && nfu.date
+      ? `<div class="nfu-conf">
+          <div style="flex:1"><div class="nfu-date">${fmtDisp(nfu.date)}</div><div class="nfu-meth">${nfu.method}</div></div>
+          <button class="btn btn-outline btn-sm" onclick="DET.clearFU('${id}')">Clear</button>
+        </div>`
+      : `<div style="display:flex;align-items:center;gap:10px">
+          <span class="t-muted">No follow-up scheduled</span>
+          <button class="btn btn-outline btn-sm" onclick="DET.setFU('${id}')">Set</button>
+        </div>`;
+
+    const logHTML = !(c.interactions||[]).length
+      ? '<div class="empty" style="padding:20px">No interactions logged yet</div>'
+      : c.interactions.map(i=>`
+        <div class="int-entry">
+          <div class="int-e-hdr">
+            <span class="int-chip">${INT_NAME[i.interactionType]||i.interactionType}</span>
+            <span class="int-date">${fmtDisp(i.timestamp.split('T')[0])}${i.approximateDate?' (approx)':''}</span>
+            <span class="int-by">@${x(i.createdBy)}</span>
+          </div>
+          <div class="int-outcome">${x(i.outcome)}</div>
+          ${i.notes||i.transcript?`
+            <button class="int-exp" onclick="DET.togDet('${i.id}')">+ Details</button>
+            <div class="int-det" id="id-${i.id}">
+              ${i.notes?`<p><strong>Notes:</strong> ${x(i.notes)}</p>`:''}
+              ${i.transcript?`<p style="margin-top:6px"><strong>Transcript:</strong><br><span style="font-family:monospace;font-size:12px">${x(i.transcript)}</span></p>`:''}
+            </div>`:''}
+        </div>`).join('');
+
+    document.getElementById('detail').innerHTML = `
+      <div class="back-btn" onclick="R.go('contacts')">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back
+      </div>
+
+      <div style="display:flex;align-items:center;gap:14px;padding:0 16px 16px">
+        <div class="avatar" style="width:56px;height:56px;font-size:22px">${ini}</div>
+        <div>
+          <h2 style="font-size:22px;color:var(--green)">${x(c.name)}</h2>
+          <p style="font-size:14px;color:var(--text2)">${x(c.company)}</p>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <div class="hs"><div class="dot ${band(sc)}"></div><span style="color:${hcol(sc)};font-size:14px">${sc}</span></div>
+            <span class="badge b-${c.relationshipTier}">${TIER_LBL[c.relationshipTier]}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-card">
+        <h4>AI Summary
+          <button class="btn-ref" onclick="AI.refresh('${id}')" id="ai-ref-btn">Refresh</button>
+        </h4>
+        <div id="ai-content">${aiContent}</div>
+      </div>
+
+      <div class="ci-card">
+        ${infoRows.map(r=>`<div class="ci-row"><span class="ci-lbl">${r[0]}</span><span>${x(r[1])}</span></div>`).join('')}
+        <div style="margin-top:10px">
+          <button class="btn btn-outline btn-sm" onclick="M.openEdit('${id}')">Edit Contact</button>
+        </div>
+      </div>
+
+      <div class="stage-sel">
+        <h4>Stage</h4>
+        <div class="stage-opts">
+          ${STAGES.map(s=>`<button class="stage-opt${c.stage===s?' on':''}" onclick="DET.setStage('${id}','${s}')">${STAGE_LBL[s]}</button>`).join('')}
+        </div>
+      </div>
+
+      <div class="nfu-card">
+        <h4>Next Follow-up</h4>
+        ${nfuHTML}
+      </div>
+
+      <div style="padding:0 16px 12px">
+        <button class="btn btn-primary btn-block" onclick="M.openLog('${id}')">+ Log Interaction</button>
+      </div>
+
+      <div class="log-card">
+        <h4>Interaction Log</h4>
+        ${logHTML}
+      </div>
+      <div style="height:20px"></div>
+    `;
+  },
+
+  setStage(id, s) { DB.update(id,{stage:s}); this.render(id); toast('Stage updated'); },
+  clearFU(id) { DB.update(id,{nextFollowUp:{date:null,method:null,confirmed:false}}); this.render(id); },
+
+  setFU(id) {
+    const d = prompt('Follow-up date (YYYY-MM-DD):', fmtISO(bizDays(new Date(),3)));
+    if (!d) return;
+    const m = prompt('Method (call/email/text/linkedin/meeting):', 'call');
+    if (!m) return;
+    DB.update(id,{nextFollowUp:{date:d,method:m,confirmed:true}});
+    this.render(id);
+    toast('Follow-up set');
+  },
+
+  togDet(iid) {
+    const el = document.getElementById('id-'+iid);
+    if (!el) return;
+    el.classList.toggle('on');
+    const btn = el.previousElementSibling;
+    if (btn) btn.textContent = el.classList.contains('on') ? '- Details' : '+ Details';
+  }
+};
+
+/* ============================================================
+   SECTION: MODALS
+   ============================================================ */
+const M = {
+  _cid: null,
+  _type: null,
+  _sug: null,
+  _logSaved: false,
+  _editId: null,
+
+  close(id) {
+    document.getElementById(id).classList.remove('on');
+    if (id==='mo-log') {
+      this._logSaved=false; this._type=null; this._sug=null;
+      document.getElementById('fu-sug-wrap').style.display='none';
+      document.getElementById('log-foot').style.display='flex';
+      document.getElementById('li-out').value='';
+      document.getElementById('li-notes').value='';
+      document.getElementById('li-tran').value='';
+      document.getElementById('li-approx').checked=false;
+      document.getElementById('fu-edit-f').classList.remove('on');
+      document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('on'));
+    }
+    if (id==='mo-add') {
+      this._editId=null;
+      document.getElementById('mo-add-title').textContent='Add Contact';
+      document.getElementById('mo-add-save').textContent='Save Contact';
+      document.getElementById('mo-add-save').onclick=()=>M.saveContact();
+    }
+  },
+
+  openAdd() {
+    this._editId=null;
+    ['ac-name','ac-co','ac-title','ac-phone','ac-email','ac-li','ac-loc','ac-met','ac-notes'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+    document.getElementById('ac-tier').value='cold';
+    document.getElementById('ac-more').classList.remove('on');
+    document.getElementById('mo-add-title').textContent='Add Contact';
+    document.getElementById('mo-add-save').textContent='Save Contact';
+    document.getElementById('mo-add-save').onclick=()=>M.saveContact();
+    document.getElementById('mo-add').classList.add('on');
+    setTimeout(()=>document.getElementById('ac-name').focus(),100);
+  },
+
+  openEdit(id) {
+    const c = DB.get(id);
+    if (!c) return;
+    this._editId=id;
+    document.getElementById('ac-name').value=c.name||'';
+    document.getElementById('ac-co').value=c.company||'';
+    document.getElementById('ac-title').value=c.jobTitle||'';
+    document.getElementById('ac-phone').value=c.phone||'';
+    document.getElementById('ac-email').value=c.email||'';
+    document.getElementById('ac-li').value=c.linkedIn||'';
+    document.getElementById('ac-loc').value=c.location||'';
+    document.getElementById('ac-met').value=c.howWeMet||'';
+    document.getElementById('ac-notes').value=c.notes||'';
+    document.getElementById('ac-tier').value=c.relationshipTier||'cold';
+    document.getElementById('ac-more').classList.add('on');
+    document.getElementById('mo-add-title').textContent='Edit Contact';
+    document.getElementById('mo-add-save').textContent='Update Contact';
+    document.getElementById('mo-add-save').onclick=()=>M.updateContact();
+    document.getElementById('mo-add').classList.add('on');
+  },
+
+  saveContact() {
+    const name=document.getElementById('ac-name').value.trim();
+    const co=document.getElementById('ac-co').value.trim();
+    if (!name||!co) { toast('Name and company are required'); return; }
+    const c = {
+      id: crypto.randomUUID(),
+      name, company:co,
+      jobTitle:document.getElementById('ac-title').value.trim(),
+      phone:document.getElementById('ac-phone').value.trim(),
+      email:document.getElementById('ac-email').value.trim(),
+      linkedIn:document.getElementById('ac-li').value.trim(),
+      location:document.getElementById('ac-loc').value.trim(),
+      howWeMet:document.getElementById('ac-met').value.trim(),
+      relationshipTier:document.getElementById('ac-tier').value,
+      notes:document.getElementById('ac-notes').value.trim(),
+      stage:'new', interactions:[],
+      nextFollowUp:{date:null,method:null,confirmed:false},
+      heatScore:5, aiSummary:'',
+      createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()
+    };
+    DB.add(c);
+    this.close('mo-add');
+    CL.render();
+    toast('Contact added');
+  },
+
+  updateContact() {
+    const name=document.getElementById('ac-name').value.trim();
+    const co=document.getElementById('ac-co').value.trim();
+    if (!name||!co) { toast('Name and company are required'); return; }
+    DB.update(this._editId, {
+      name, company:co,
+      jobTitle:document.getElementById('ac-title').value.trim(),
+      phone:document.getElementById('ac-phone').value.trim(),
+      email:document.getElementById('ac-email').value.trim(),
+      linkedIn:document.getElementById('ac-li').value.trim(),
+      location:document.getElementById('ac-loc').value.trim(),
+      howWeMet:document.getElementById('ac-met').value.trim(),
+      notes:document.getElementById('ac-notes').value.trim(),
+      relationshipTier:document.getElementById('ac-tier').value,
+    });
+    this.close('mo-add');
+    if (R.cur==='detail') DET.render(this._editId);
+    else CL.render();
+    toast('Contact updated');
+  },
+
+  openLog(cid) {
+    this._cid=cid; this._type=null; this._logSaved=false;
+    const c=DB.get(cid);
+    document.getElementById('log-title').textContent='Log: '+(c?c.name:'');
+    document.getElementById('li-out').value='';
+    document.getElementById('li-notes').value='';
+    document.getElementById('li-tran').value='';
+    document.getElementById('li-approx').checked=false;
+    document.getElementById('fu-sug-wrap').style.display='none';
+    document.getElementById('log-foot').style.display='flex';
+    document.getElementById('fu-edit-f').classList.remove('on');
+
+    document.getElementById('type-grid').innerHTML = INT_TYPES.map(t=>
+      `<button class="type-btn" onclick="M.selType('${t.v}',this)">${t.l.replace('\n','<br>')}</button>`
+    ).join('');
+    document.getElementById('mo-log').classList.add('on');
+  },
+
+  selType(v, btn) {
+    this._type=v;
+    document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+  },
+
+  saveLog() {
+    if (!this._type) { toast('Select an interaction type'); return; }
+    const out=document.getElementById('li-out').value.trim();
+    if (!out) { toast('Outcome is required'); return; }
+
+    const c=DB.get(this._cid);
+    if (!c) return;
+
+    const ix = {
+      id:crypto.randomUUID(), contactId:this._cid, createdBy:AUTH.user,
+      timestamp:new Date().toISOString(),
+      approximateDate:document.getElementById('li-approx').checked,
+      interactionType:this._type, outcome:out,
+      notes:document.getElementById('li-notes').value.trim(),
+      transcript:document.getElementById('li-tran').value.trim()
+    };
+
+    DB.addInteraction(this._cid, ix);
+    const updated = DB.get(this._cid);
+    updated.heatScore = calcHeat(updated);
+    if (this._type==='not-interested') updated.stage='parked';
+    DB.save();
+
+    const sug = suggestFU(updated, ix);
+    this._sug = sug;
+    document.getElementById('fu-sug-txt').textContent = fmtDisp(sug.date)+' · '+sug.method;
+    document.getElementById('fu-date').value = sug.date;
+    document.getElementById('fu-meth').value = sug.method;
+    document.getElementById('fu-sug-wrap').style.display='block';
+    document.getElementById('log-foot').style.display='none';
+    this._logSaved=true;
+
+    this._refresh();
+  },
+
+  confirmFU() {
+    if (!this._sug) return;
+    DB.update(this._cid, {nextFollowUp:{...this._sug,confirmed:true}});
+    this.close('mo-log');
+    toast('Follow-up confirmed');
+    this._refresh();
+  },
+
+  editFU() { document.getElementById('fu-edit-f').classList.toggle('on'); },
+
+  confirmEditFU() {
+    const d=document.getElementById('fu-date').value;
+    const m=document.getElementById('fu-meth').value;
+    if (!d) { toast('Select a date'); return; }
+    DB.update(this._cid, {nextFollowUp:{date:d,method:m,confirmed:true}});
+    this.close('mo-log');
+    toast('Follow-up saved');
+    this._refresh();
+  },
+
+  _refresh() {
+    if (R.cur==='detail') DET.render(R.detailId);
+    else if (R.cur==='contacts') CL.filter();
+    else if (R.cur==='dash') DASH.render();
+  },
+
+  coll(id) {
+    const el=document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('on');
+    const ico=document.getElementById(id+'-ico');
+    if (ico) ico.style.transform=el.classList.contains('on')?'rotate(180deg)':'';
+  }
+};
+
+/* ============================================================
+   SECTION: AI SUMMARY
+   ============================================================ */
+const AI = {
+  async refresh(id) {
+    const key = DB.getKey();
+    if (!key) { toast('Add API key in Settings'); return; }
+
+    const c = DB.get(id);
+    if (!c) return;
+
+    const btn = document.getElementById('ai-ref-btn');
+    const content = document.getElementById('ai-content');
+    if (btn) btn.innerHTML='<span class="spinner"></span>';
+
+    const ixSummary = (c.interactions||[]).slice(0,10).map(i=>
+      `${i.interactionType} on ${i.timestamp.split('T')[0]}: ${i.outcome}${i.notes?' | '+i.notes:''}`
+    ).join('\n');
+
+    const msg = `Contact: ${c.name}, ${c.jobTitle||'role unknown'} at ${c.company}
+Location: ${c.location||'unknown'}
+Tier: ${c.relationshipTier} | Stage: ${c.stage} | Heat: ${c.heatScore}/10
+Notes: ${c.notes||'none'}
+Next follow-up: ${c.nextFollowUp&&c.nextFollowUp.confirmed?c.nextFollowUp.date+' via '+c.nextFollowUp.method:'not scheduled'}
+
+Interactions (newest first):
+${ixSummary||'None logged'}`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key':key,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body:JSON.stringify({
+          model:'claude-sonnet-4-6',
+          max_tokens:300,
+          system:'You are a sharp BD analyst for a construction recruitment firm. Write a single concise paragraph (under 200 words) covering: where this relationship stands, what this person needs, what the next best move is, and how hot this lead is. Be direct and actionable. No filler.',
+          messages:[{role:'user',content:msg}]
+        })
+      });
+      if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message||'API error'); }
+      const data = await res.json();
+      const sum = data.content[0].text;
+      DB.update(id, {aiSummary:sum});
+      if (content) content.innerHTML=`<p class="ai-text">${x(sum)}</p>`;
+      if (btn) btn.textContent='Refresh';
+    } catch(e) {
+      if (btn) btn.textContent='Refresh';
+      if (content) content.innerHTML=`<p class="ai-ph">Error: ${x(e.message)}</p>`;
+    }
+  }
+};
+
+/* ============================================================
+   SECTION: SETTINGS
+   ============================================================ */
+const ST = {
+  init() {
+    document.getElementById('api-key').value = DB.getKey();
+    document.getElementById('set-user').textContent = AUTH.user;
+  },
+
+  toggleKey() {
+    const inp=document.getElementById('api-key');
+    const btn=document.querySelector('.sh-btn');
+    inp.type=inp.type==='password'?'text':'password';
+    btn.textContent=inp.type==='password'?'Show':'Hide';
+  },
+
+  saveKey() { DB.setKey(document.getElementById('api-key').value.trim()); toast('API key saved'); },
+
+  exportData() {
+    const data = DB.export();
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download=`bbnexus-backup-${today()}.json`; a.click();
+    URL.revokeObjectURL(url);
+    toast('Backup downloaded');
+  },
+
+  importData(e) {
+    const file=e.target.files[0];
+    if (!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try {
+        const data=JSON.parse(ev.target.result);
+        if (!confirm('Overwrite all existing data with this backup?')) { e.target.value=''; return; }
+        if (DB.import(data)) { toast('Data restored'); DASH.render(); }
+        else toast('Invalid backup file');
+      } catch { toast('Could not parse file'); }
+      e.target.value='';
+    };
+    reader.readAsText(file);
+  }
+};
+
+/* ============================================================
+   SECTION: UTILITIES
+   ============================================================ */
+function x(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let _tt;
+function toast(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('on');
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('on'),2500);
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.mo').forEach(o=>{
+  o.addEventListener('click',e=>{
+    if (e.target!==o) return;
+    const id=o.id;
+    if (id==='mo-log'&&M._logSaved) return;
+    M.close(id);
+  });
+});
+
+// Login on Enter
+document.getElementById('lp').addEventListener('keydown',e=>{ if(e.key==='Enter') AUTH.login(); });
+document.getElementById('lu').addEventListener('keydown',e=>{ if(e.key==='Enter') AUTH.login(); });
+
+/* ============================================================
+   SECTION: INIT
+   ============================================================ */
+DB.load();
+AUTH.init();
+</script>
+</body>
+</html>
