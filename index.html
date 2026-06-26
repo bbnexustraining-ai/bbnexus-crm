@@ -224,7 +224,8 @@ a{color:var(--gold);text-decoration:none}
 .back-btn{display:flex;align-items:center;gap:8px;padding:12px 16px;color:var(--green);font-weight:600;font-size:15px;cursor:pointer}
 .ai-card{background:var(--navy);color:#fff;border-radius:var(--r);margin:0 16px 12px;padding:16px}
 .ai-card h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gold-light);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
-.ai-text{font-size:14px;line-height:1.6;color:rgba(255,255,255,0.9)}
+.ai-text{font-size:13px;line-height:1.7;color:rgba(255,255,255,0.9)}
+.ai-text p{margin-bottom:10px}.ai-text p:last-child{margin-bottom:0}
 .ai-ph{font-size:14px;color:rgba(255,255,255,0.5);font-style:italic}
 .btn-ref{background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600}
 .ci-card{background:var(--card);border-radius:var(--r);margin:0 16px 12px;padding:16px;box-shadow:var(--sh)}
@@ -622,10 +623,11 @@ a{color:var(--gold);text-decoration:none}
         <div class="fg" style="flex:1;margin-bottom:0"><label>Date</label><input type="date" id="li-date"></div>
         <div class="fg" style="flex:1;margin-bottom:0"><label>Time</label><input type="time" id="li-time"></div>
       </div>
-      <div class="fg mt8">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;font-size:14px;font-weight:400">
-          <input type="checkbox" id="li-past" onchange="M.togglePast(this)"> This interaction happened in the past
-        </label>
+      <div class="mt8">
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="li-past" onchange="M.togglePast(this)">
+          <label for="li-past" style="font-size:14px;font-weight:400;color:var(--text);cursor:pointer;margin:0">This interaction happened in the past</label>
+        </div>
         <p class="t-muted" id="li-past-note" style="display:none;font-size:12px;margin-top:4px">Date adjusted — logging a past interaction</p>
       </div>
       <div id="fu-sug-wrap" style="display:none">
@@ -1139,7 +1141,7 @@ const DET = {
     const aiContent = !hasKey
       ? `<p class="ai-ph">Add your Anthropic API key in <a onclick="R.go('settings')" style="cursor:pointer;color:var(--gold-light)">Settings</a> to use AI summaries.</p>`
       : c.aiSummary
-        ? `<p class="ai-text">${x(c.aiSummary)}</p>`
+        ? `<div class="ai-text">${c.aiSummary.split(/\n\n+/).map(p=>`<p>${x(p.trim())}</p>`).join('')}</div>`
         : `<p class="ai-ph">No summary yet. Tap Refresh to generate one.</p>`;
 
     const infoRows = [
@@ -1590,7 +1592,7 @@ ${ixSummary||'None logged'}`;
       const data = await res.json();
       const sum = data.content[0].text;
       DB.update(id, {aiSummary:sum});
-      if (content) content.innerHTML=`<p class="ai-text">${x(sum)}</p>`;
+      if (content) content.innerHTML=`<div class="ai-text">${sum.split(/\n\n+/).map(p=>`<p>${x(p.trim())}</p>`).join('')}</div>`;
       if (btn) btn.textContent='Refresh';
     } catch(e) {
       if (btn) btn.textContent='Refresh';
@@ -1675,42 +1677,54 @@ const PASSWD = {
   },
 
   async refreshCS(id) {
+    console.log('[AI.refreshCS] called for id:', id);
     const key=DB.getKey(); if(!key){toast('Add API key in Settings');return;}
     const c=DB.get(id); if(!c) return;
     const btn=document.getElementById('cs-ref-btn');
+    const csExp=document.getElementById('cs-exp');
     if(btn) btn.innerHTML='<span class="spinner"></span>';
     const ixOuts=(c.interactions||[]).slice(0,5).map(i=>i.outcome).join('; ')||'none';
     const msg=`Name: ${c.name} | Company: ${c.company} | Title: ${c.jobTitle||'unknown'} | Stage: ${c.stage} | Heat: ${c.heatScore}/10\nLast 5 interactions: ${ixOuts}`;
     try {
       const raw=await this._callAPI(key,'Score this construction BD contact on conversion probability 1-10. Return ONLY valid JSON: {"score":<integer 1-10>,"explanation":"<one sentence>"}',msg,150);
-      const obj=JSON.parse(raw);
-      if(!obj.score||!obj.explanation) throw new Error('Invalid response');
+      console.log('[AI.refreshCS] raw response:', raw);
+      const cleaned=raw.replace(/^```[a-z]*\n?/,'').replace(/\n?```$/,'').trim();
+      const obj=JSON.parse(cleaned);
+      if(!obj.score||!obj.explanation) throw new Error('Invalid response structure');
       const cs={score:obj.score,explanation:obj.explanation,lastUpdated:new Date().toISOString()};
       DB.update(id,{conversionScore:cs});
       DET.render(id);
     } catch(e) {
-      toast('Score error: '+e.message);
+      console.error('[AI.refreshCS] error:', e);
       if(btn) btn.textContent='Refresh Score';
+      if(csExp) csExp.textContent='Error: '+e.message;
+      else toast('Score error: '+e.message);
     }
   },
 
   async refreshRS(id) {
+    console.log('[AI.refreshRS] called for id:', id);
     const key=DB.getKey(); if(!key){toast('Add API key in Settings');return;}
     const c=DB.get(id); if(!c) return;
     const btn=document.getElementById('rs-ref-btn');
+    const rsReason=document.getElementById('rs-reason');
     if(btn) btn.innerHTML='<span class="spinner"></span>';
     const ixOuts=(c.interactions||[]).slice(0,5).map(i=>i.interactionType+': '+i.outcome).join('; ')||'none';
     const sixWks=fmtISO(calDays(new Date(),42));
     const msg=`Name: ${c.name} | Company: ${c.company} | Role: ${c.jobTitle||'unknown'} | Notes: ${c.notes||'none'}\nRecent interactions: ${ixOuts}`;
     try {
-      const raw=await this._callAPI(key,'You maintain long-term relationships for a construction recruitment firm. Return ONLY valid JSON with exactly these fields: {"checkInReason":"<personalised one sentence reason to reach out>","suggestedDate":"${sixWks}","reclassifyFlag":<true if notes mention role change, project win, or labour enquiry, else false>,"reclassifyReason":"<one sentence only if reclassifyFlag true, else empty string>"}',msg,200);
-      const obj=JSON.parse(raw);
+      const raw=await this._callAPI(key,'You maintain long-term relationships for a construction recruitment firm. Return ONLY valid JSON with exactly these fields: {"checkInReason":"<personalised one sentence reason to reach out>","suggestedDate":"'+sixWks+'","reclassifyFlag":<true if notes mention role change, project win, or labour enquiry, else false>,"reclassifyReason":"<one sentence only if reclassifyFlag true, else empty string>"}',msg,200);
+      console.log('[AI.refreshRS] raw response:', raw);
+      const cleaned=raw.replace(/^```[a-z]*\n?/,'').replace(/\n?```$/,'').trim();
+      const obj=JSON.parse(cleaned);
       const rs={checkInReason:obj.checkInReason||'',suggestedDate:obj.suggestedDate||sixWks,reclassifyFlag:!!obj.reclassifyFlag,reclassifyReason:obj.reclassifyReason||''};
       DB.update(id,{relationshipSuggestion:rs});
       DET.render(id);
     } catch(e) {
-      toast('Suggestion error: '+e.message);
+      console.error('[AI.refreshRS] error:', e);
       if(btn) btn.textContent='Refresh';
+      if(rsReason) rsReason.textContent='Error: '+e.message;
+      else toast('Suggestion error: '+e.message);
     }
   }
 };
