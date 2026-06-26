@@ -261,122 +261,6 @@ a{color:var(--gold);text-decoration:none}
 .coll-body.on{display:block}
 
 /* ============================================================
-   SECTION: PASSWORD RESET
-   ============================================================ */
-const PASSWD = {
-  _SEC: {
-    shyan: { q: 'What is your email?', a: 'shyan@bbnexus.com.au' },
-    amal:  { q: 'What is your email?', a: 'amal@bbnexus.com.au'  },
-    rahul: { q: 'What is your email?', a: 'rahul@bbnexus.com.au' }
-  },
-  _sel: null,
-
-  open() {
-    this._sel = null;
-    document.getElementById('pr-user').value = '';
-    document.getElementById('pr-ans').value = '';
-    const n = document.getElementById('pr-new'); if(n) n.value='';
-    const c = document.getElementById('pr-conf'); if(c) c.value='';
-    document.getElementById('pr-err').textContent = '';
-    document.getElementById('pr-q-wrap').style.display = 'none';
-    document.getElementById('pr-step1').style.display = 'block';
-    document.getElementById('pr-step2').style.display = 'none';
-    document.getElementById('mo-pwreset').classList.add('on');
-  },
-
-  close() { document.getElementById('mo-pwreset').classList.remove('on'); },
-
-  _onUser() {
-    const u = document.getElementById('pr-user').value;
-    const wrap = document.getElementById('pr-q-wrap');
-    if (u && this._SEC[u]) {
-      document.getElementById('pr-q-lbl').textContent = this._SEC[u].q;
-      wrap.style.display = 'block';
-    } else {
-      wrap.style.display = 'none';
-    }
-  },
-
-  verify() {
-    const u = document.getElementById('pr-user').value;
-    const ans = document.getElementById('pr-ans').value.trim().toLowerCase();
-    const err = document.getElementById('pr-err');
-    if (!u || !this._SEC[u]) { err.textContent = 'Please select a username.'; return; }
-    if (!ans) { err.textContent = 'Please answer the security question.'; return; }
-    if (ans !== this._SEC[u].a) { err.textContent = 'Incorrect answer. Try again.'; return; }
-    this._sel = u;
-    err.textContent = '';
-    document.getElementById('pr-step1').style.display = 'none';
-    document.getElementById('pr-step2').style.display = 'block';
-    setTimeout(() => document.getElementById('pr-new').focus(), 50);
-  },
-
-  reset() {
-    const np = document.getElementById('pr-new').value;
-    const cp = document.getElementById('pr-conf').value;
-    const err = document.getElementById('pr-err');
-    if (np.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
-    if (np !== cp) { err.textContent = 'Passwords do not match.'; return; }
-    const stored = JSON.parse(localStorage.getItem('bb_passwords') || '{}');
-    stored[this._sel] = np;
-    localStorage.setItem('bb_passwords', JSON.stringify(stored));
-    this.close();
-    toast('Password updated — please sign in');
-  },
-
-  async _callAPI(key, system, msg, max_tokens) {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens,system,messages:[{role:'user',content:msg}]})
-    });
-    if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message||'API error'); }
-    const data = await res.json();
-    return data.content[0].text.trim().replace(/^```[a-z]*\n?/,'').replace(/\n?```$/,'').trim();
-  },
-
-  async refreshCS(id) {
-    const key=DB.getKey(); if(!key){toast('Add API key in Settings');return;}
-    const c=DB.get(id); if(!c) return;
-    const btn=document.getElementById('cs-ref-btn');
-    if(btn) btn.innerHTML='<span class="spinner"></span>';
-    const ixOuts=(c.interactions||[]).slice(0,5).map(i=>i.outcome).join('; ')||'none';
-    const msg=`Name: ${c.name} | Company: ${c.company} | Title: ${c.jobTitle||'unknown'} | Stage: ${c.stage} | Heat: ${c.heatScore}/10\nLast 5 interactions: ${ixOuts}`;
-    try {
-      const raw=await this._callAPI(key,'Score this construction BD contact on conversion probability 1-10. Return ONLY valid JSON: {"score":<integer 1-10>,"explanation":"<one sentence>"}',msg,150);
-      const obj=JSON.parse(raw);
-      if(!obj.score||!obj.explanation) throw new Error('Invalid response');
-      const cs={score:obj.score,explanation:obj.explanation,lastUpdated:new Date().toISOString()};
-      DB.update(id,{conversionScore:cs});
-      DET.render(id);
-    } catch(e) {
-      toast('Score error: '+e.message);
-      if(btn) btn.textContent='Refresh Score';
-    }
-  },
-
-  async refreshRS(id) {
-    const key=DB.getKey(); if(!key){toast('Add API key in Settings');return;}
-    const c=DB.get(id); if(!c) return;
-    const btn=document.getElementById('rs-ref-btn');
-    if(btn) btn.innerHTML='<span class="spinner"></span>';
-    const ixOuts=(c.interactions||[]).slice(0,5).map(i=>i.interactionType+': '+i.outcome).join('; ')||'none';
-    const sixWks=fmtISO(calDays(new Date(),42));
-    const msg=`Name: ${c.name} | Company: ${c.company} | Role: ${c.jobTitle||'unknown'} | Notes: ${c.notes||'none'}\nRecent interactions: ${ixOuts}`;
-    try {
-      const raw=await this._callAPI(key,'You maintain long-term relationships for a construction recruitment firm. Return ONLY valid JSON with exactly these fields: {"checkInReason":"<personalised one sentence reason to reach out>","suggestedDate":"${sixWks}","reclassifyFlag":<true if notes mention role change, project win, or labour enquiry, else false>,"reclassifyReason":"<one sentence only if reclassifyFlag true, else empty string>"}',msg,200);
-      const obj=JSON.parse(raw);
-      const rs={checkInReason:obj.checkInReason||'',suggestedDate:obj.suggestedDate||sixWks,reclassifyFlag:!!obj.reclassifyFlag,reclassifyReason:obj.reclassifyReason||''};
-      DB.update(id,{relationshipSuggestion:rs});
-      DET.render(id);
-    } catch(e) {
-      toast('Suggestion error: '+e.message);
-      if(btn) btn.textContent='Refresh';
-    }
-  }
-};
-
-/* ============================================================
    SECTION: SETTINGS
    ============================================================ */
 .set-sec{background:var(--card);border-radius:var(--r);margin:0 16px 12px;padding:16px;box-shadow:var(--sh)}
@@ -416,6 +300,8 @@ const PASSWD = {
   .pipe-grid{grid-template-columns:repeat(4,1fr)}
   .screen{font-size:15px}
   .toast{bottom:20px}
+  #s-settings .sh{max-width:600px;margin:0 auto;padding:0 8px}
+  #s-settings .set-sec{max-width:600px;margin:0 auto 12px}
 }
 @media(min-width:1100px){
   #clist{grid-template-columns:repeat(3,1fr)}
@@ -613,11 +499,9 @@ const PASSWD = {
         <h3>Account Security</h3>
         <div class="fg">
           <label>Display Name</label>
-          <div style="display:flex;gap:8px">
-            <input type="text" id="st-dispname" placeholder="Your display name" style="flex:1">
-            <button class="btn btn-outline btn-sm" onclick="ST.saveName()" style="white-space:nowrap">Save Name</button>
-          </div>
+          <input type="text" id="st-dispname" placeholder="Your display name">
         </div>
+        <button class="btn btn-primary" onclick="ST.saveName()">Save Display Name</button>
         <div class="divider"></div>
         <div class="fg"><label>Current Password</label><input type="password" id="st-curpw" placeholder="Current password"></div>
         <div class="fg"><label>New Password</label><input type="password" id="st-newpw" placeholder="Min 6 characters"></div>
@@ -1714,6 +1598,123 @@ ${ixSummary||'None logged'}`;
     }
   }
 };
+
+/* ============================================================
+   SECTION: PASSWORD RESET
+   ============================================================ */
+const PASSWD = {
+  _SEC: {
+    shyan: { q: 'What is your email?', a: 'shyan@bbnexus.com.au' },
+    amal:  { q: 'What is your email?', a: 'amal@bbnexus.com.au'  },
+    rahul: { q: 'What is your email?', a: 'rahul@bbnexus.com.au' }
+  },
+  _sel: null,
+
+  open() {
+    this._sel = null;
+    document.getElementById('pr-user').value = '';
+    document.getElementById('pr-ans').value = '';
+    const n = document.getElementById('pr-new'); if(n) n.value='';
+    const c = document.getElementById('pr-conf'); if(c) c.value='';
+    document.getElementById('pr-err').textContent = '';
+    document.getElementById('pr-q-wrap').style.display = 'none';
+    document.getElementById('pr-step1').style.display = 'block';
+    document.getElementById('pr-step2').style.display = 'none';
+    document.getElementById('mo-pwreset').classList.add('on');
+  },
+
+  close() { document.getElementById('mo-pwreset').classList.remove('on'); },
+
+  _onUser() {
+    const u = document.getElementById('pr-user').value;
+    const wrap = document.getElementById('pr-q-wrap');
+    if (u && this._SEC[u]) {
+      document.getElementById('pr-q-lbl').textContent = this._SEC[u].q;
+      wrap.style.display = 'block';
+    } else {
+      wrap.style.display = 'none';
+    }
+  },
+
+  verify() {
+    const u = document.getElementById('pr-user').value;
+    const ans = document.getElementById('pr-ans').value.trim().toLowerCase();
+    const err = document.getElementById('pr-err');
+    if (!u || !this._SEC[u]) { err.textContent = 'Please select a username.'; return; }
+    if (!ans) { err.textContent = 'Please answer the security question.'; return; }
+    if (ans !== this._SEC[u].a) { err.textContent = 'Incorrect answer. Try again.'; return; }
+    this._sel = u;
+    err.textContent = '';
+    document.getElementById('pr-step1').style.display = 'none';
+    document.getElementById('pr-step2').style.display = 'block';
+    setTimeout(() => document.getElementById('pr-new').focus(), 50);
+  },
+
+  reset() {
+    const np = document.getElementById('pr-new').value;
+    const cp = document.getElementById('pr-conf').value;
+    const err = document.getElementById('pr-err');
+    if (np.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+    if (np !== cp) { err.textContent = 'Passwords do not match.'; return; }
+    const stored = JSON.parse(localStorage.getItem('bb_passwords') || '{}');
+    stored[this._sel] = np;
+    localStorage.setItem('bb_passwords', JSON.stringify(stored));
+    this.close();
+    toast('Password updated — please sign in');
+  },
+
+  async _callAPI(key, system, msg, max_tokens) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens,system,messages:[{role:'user',content:msg}]})
+    });
+    if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message||'API error'); }
+    const data = await res.json();
+    return data.content[0].text.trim().replace(/^```[a-z]*\n?/,'').replace(/\n?```$/,'').trim();
+  },
+
+  async refreshCS(id) {
+    const key=DB.getKey(); if(!key){toast('Add API key in Settings');return;}
+    const c=DB.get(id); if(!c) return;
+    const btn=document.getElementById('cs-ref-btn');
+    if(btn) btn.innerHTML='<span class="spinner"></span>';
+    const ixOuts=(c.interactions||[]).slice(0,5).map(i=>i.outcome).join('; ')||'none';
+    const msg=`Name: ${c.name} | Company: ${c.company} | Title: ${c.jobTitle||'unknown'} | Stage: ${c.stage} | Heat: ${c.heatScore}/10\nLast 5 interactions: ${ixOuts}`;
+    try {
+      const raw=await this._callAPI(key,'Score this construction BD contact on conversion probability 1-10. Return ONLY valid JSON: {"score":<integer 1-10>,"explanation":"<one sentence>"}',msg,150);
+      const obj=JSON.parse(raw);
+      if(!obj.score||!obj.explanation) throw new Error('Invalid response');
+      const cs={score:obj.score,explanation:obj.explanation,lastUpdated:new Date().toISOString()};
+      DB.update(id,{conversionScore:cs});
+      DET.render(id);
+    } catch(e) {
+      toast('Score error: '+e.message);
+      if(btn) btn.textContent='Refresh Score';
+    }
+  },
+
+  async refreshRS(id) {
+    const key=DB.getKey(); if(!key){toast('Add API key in Settings');return;}
+    const c=DB.get(id); if(!c) return;
+    const btn=document.getElementById('rs-ref-btn');
+    if(btn) btn.innerHTML='<span class="spinner"></span>';
+    const ixOuts=(c.interactions||[]).slice(0,5).map(i=>i.interactionType+': '+i.outcome).join('; ')||'none';
+    const sixWks=fmtISO(calDays(new Date(),42));
+    const msg=`Name: ${c.name} | Company: ${c.company} | Role: ${c.jobTitle||'unknown'} | Notes: ${c.notes||'none'}\nRecent interactions: ${ixOuts}`;
+    try {
+      const raw=await this._callAPI(key,'You maintain long-term relationships for a construction recruitment firm. Return ONLY valid JSON with exactly these fields: {"checkInReason":"<personalised one sentence reason to reach out>","suggestedDate":"${sixWks}","reclassifyFlag":<true if notes mention role change, project win, or labour enquiry, else false>,"reclassifyReason":"<one sentence only if reclassifyFlag true, else empty string>"}',msg,200);
+      const obj=JSON.parse(raw);
+      const rs={checkInReason:obj.checkInReason||'',suggestedDate:obj.suggestedDate||sixWks,reclassifyFlag:!!obj.reclassifyFlag,reclassifyReason:obj.reclassifyReason||''};
+      DB.update(id,{relationshipSuggestion:rs});
+      DET.render(id);
+    } catch(e) {
+      toast('Suggestion error: '+e.message);
+      if(btn) btn.textContent='Refresh';
+    }
+  }
+};
+
 
 /* ============================================================
    SECTION: SETTINGS
