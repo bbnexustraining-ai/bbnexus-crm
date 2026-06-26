@@ -971,21 +971,29 @@ const AUTH = {
   },
 
   login() {
-    const u = document.getElementById('lu').value.trim().toLowerCase();
-    const p = document.getElementById('lp').value;
     const err = document.getElementById('auth-err');
-    if (!u||!p) { err.textContent='Enter username and password.'; return; }
-    const stored = JSON.parse(localStorage.getItem('bb_passwords') || '{}');
-    const expected = stored[u] !== undefined ? stored[u] : USERS[u];
-    if (expected !== undefined && expected === p) {
-      this.userKey = u;
-      this.user = u.charAt(0).toUpperCase()+u.slice(1);
-      sessionStorage.setItem('bb_user', this.user);
-      sessionStorage.setItem('bb_user_key', u);
-      err.textContent='';
-      this._show();
-    } else {
-      err.textContent='Invalid username or password.';
+    try {
+      const u = (document.getElementById('lu').value || '').trim().toLowerCase();
+      const p = document.getElementById('lp').value || '';
+      console.log('[BBNexus login] username:', u, '| password length:', p.length);
+      if (!u||!p) { err.textContent='Enter username and password.'; return; }
+      if (!USERS.hasOwnProperty(u)) { err.textContent='Invalid username or password.'; return; }
+      const stored = JSON.parse(localStorage.getItem('bb_passwords') || '{}');
+      const expected = stored.hasOwnProperty(u) ? stored[u] : USERS[u];
+      console.log('[BBNexus login] expected match:', expected === p);
+      if (expected === p) {
+        this.userKey = u;
+        this.user = u.charAt(0).toUpperCase()+u.slice(1);
+        sessionStorage.setItem('bb_user', this.user);
+        sessionStorage.setItem('bb_user_key', u);
+        err.textContent='';
+        this._show();
+      } else {
+        err.textContent='Invalid username or password.';
+      }
+    } catch(e) {
+      console.error('[BBNexus login] error:', e);
+      err.textContent='Login error: ' + e.message;
     }
   },
 
@@ -1006,6 +1014,7 @@ const AUTH = {
     document.getElementById('main').classList.add('on');
     document.getElementById('hdr-user').textContent=this.user;
     document.getElementById('set-user').textContent=this.user;
+    const sbU = document.getElementById('sb-user'); if (sbU) sbU.textContent = this.user;
     R.go('dash');
   }
 };
@@ -1825,12 +1834,7 @@ const IMP = {
 
   // ── CSV parsing ────────────────────────────────────────────
   _parseCSV(text) {
-    const lines = text.replace(/
-/g,'
-').replace(/
-/g,'
-').split('
-').filter(l=>l.trim());
+    const lines = text.split(/[\r\n]+/).filter(l=>l.trim());
     // detect delimiter
     const first = lines[0];
     const delim = (first.split('	').length > first.split(',').length) ? '	' : ',';
@@ -1856,8 +1860,7 @@ const IMP = {
       reader.onload=ev=>{
         const wb=XLSX.read(ev.target.result,{type:'array'});
         const ws=wb.Sheets[wb.SheetNames[0]];
-        const rows=XLSX.utils.sheet_to_csv(ws).split('
-').filter(l=>l.trim()).map(l=>l.split(',').map(c=>c.trim()));
+        const rows=XLSX.utils.sheet_to_csv(ws).split(/[\r\n]+/).filter(l=>l.trim()).map(l=>l.split(',').map(c=>c.trim()));
         this._showMap(rows);
       };
       reader.readAsArrayBuffer(file);
@@ -1872,10 +1875,8 @@ const IMP = {
     if (rows.length < 2) { toast('File appears empty'); return; }
     this._headers = rows[0];
     this._rows = rows.slice(1).filter(r=>r.some(c=>c));
-    const preview = this._rows.slice(0,3).map(r=>'• '+r.slice(0,4).join(' | ')).join('
-');
-    document.getElementById('imp-preview').textContent = preview + (this._rows.length>3?'
-… and '+(this._rows.length-3)+' more rows':'');
+    const preview = this._rows.slice(0,3).map(r=>'• '+r.slice(0,4).join(' | ')).join('\n');
+    document.getElementById('imp-preview').textContent = preview + (this._rows.length>3?'\n… and '+(this._rows.length-3)+' more rows':'');
 
     const mapEl = document.getElementById('imp-col-map');
     mapEl.innerHTML = this._headers.map((h,i)=>`
@@ -1944,15 +1945,11 @@ const IMP = {
       const data=await res.json();
       const raw=data.content[0].text.trim();
       // strip possible markdown code fences
-      const json=raw.replace(/^```[a-z]*
-?/,'').replace(/
-?```$/,'').trim();
+      const json=raw.replace(/^```[\w]*\n?/,'').replace(/\n?```$/,'').trim();
       this._aiContacts=JSON.parse(json);
       if (!Array.isArray(this._aiContacts)||!this._aiContacts.length) throw new Error('No contacts found');
       document.getElementById('imp-ai-count').textContent=this._aiContacts.length+' contact'+(this._aiContacts.length!==1?'s':'')+' found:';
-      document.getElementById('imp-ai-preview').textContent=this._aiContacts.slice(0,5).map(c=>'• '+(c.name||'?')+' — '+(c.company||'')).join('
-')+(this._aiContacts.length>5?'
-… and '+(this._aiContacts.length-5)+' more':'');
+      document.getElementById('imp-ai-preview').textContent=this._aiContacts.slice(0,5).map(c=>'• '+(c.name||'?')+' — '+(c.company||'')).join('\n')+(this._aiContacts.length>5?'\n… and '+(this._aiContacts.length-5)+' more':'');
       document.getElementById('imp-ai-result').style.display='block';
     } catch(e) {
       document.getElementById('imp-ai-err').textContent='Error: '+e.message;
