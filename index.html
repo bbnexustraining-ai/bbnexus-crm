@@ -905,31 +905,75 @@ function relDate(ts) {
    ============================================================ */
 function suggestFU(contact, newInt, baseDate) {
   const now = baseDate || new Date();
-  if ((contact.contactMode||'active-prospect') === 'relationship-builder') {
-    return { date: ensureWeekday(fmtISO(calDays(now,42))), method:'call', isCheckIn:true };
+  const src = contact.source || '';
+  const tier = contact.relationshipTier || 'cold';
+  const stage = contact.stage || 'new';
+  const mode = contact.contactMode || 'active-prospect';
+  const title = (contact.jobTitle || '').toLowerCase();
+  const notes = (contact.notes || '').toLowerCase();
+  const t = newInt ? newInt.interactionType : '';
+
+  // ── Relationship Builder path ──────────────────────────────
+  if (mode === 'relationship-builder') {
+    // Father's Network → manual only, no date
+    if (src === 'fathers-network') return { date: null, method: 'call', isCheckIn: true, manual: true };
+
+    // Warm referral with active introduction in recent outcome
+    const lastOutcome = (contact.interactions[0]?.outcome || '').toLowerCase();
+    if (src === 'warm-referral' && /introduc|referral|connected|passed on/.test(lastOutcome)) {
+      return { date: ensureWeekday(fmtISO(bizDays(now, 1))), method: 'call', isCheckIn: true };
+    }
+
+    // Dynamic RB intervals
+    let days = 42;
+    if (src === 'fathers-network') days = 56;
+    else if (/\bgm\b|general manager|director|ceo|coo|managing director/i.test(title)) days = 56;
+    else if (/indigenous|aboriginal/i.test(notes + title)) days = 70;
+
+    const method = src === 'fathers-network' ? 'call' : src === 'warm-referral' ? 'call' : 'call';
+    return { date: ensureWeekday(fmtISO(calDays(now, days))), method, isCheckIn: true };
   }
-  const t = newInt.interactionType;
 
-  if (t === 'call-no-answer') return { date: ensureWeekday(fmtISO(bizDays(now,3))), method:'call' };
+  // ── Combination overrides (Active Prospect) ────────────────
+  if (stage === 'meeting-held') return { date: ensureWeekday(fmtISO(bizDays(now, 1))), method: 'call' };
+  if (tier === 'warm' && stage === 'engaged') return { date: ensureWeekday(fmtISO(bizDays(now, 1))), method: _srcMethod(src, tier, stage, contact.interactions, t) };
+  if (tier === 'cold' && stage === 'contacted') return { date: ensureWeekday(fmtISO(bizDays(now, 4))), method: _srcMethod(src, tier, stage, contact.interactions, t) };
 
-  if (t === 'voicemail-left') {
+  // ── Standard Active Prospect rules ────────────────────────
+  let days, meth;
+
+  if (t === 'not-interested') return { date: ensureWeekday(fmtISO(calDays(now, 60))), method: 'call' };
+
+  if (t === 'call-no-answer') { days = 2; meth = 'call'; }
+  else if (t === 'voicemail-left') {
     const consec = countConsecutive(contact.interactions, 'voicemail-left');
-    return { date: ensureWeekday(fmtISO(bizDays(now,5))), method: consec >= 2 ? 'email' : 'call' };
+    days = 5; meth = consec >= 2 ? 'text' : 'call';
   }
-
-  if (t === 'email-sent') {
+  else if (t === 'email-sent') {
     const consec = countConsecutive(contact.interactions, 'email-sent');
-    return { date: ensureWeekday(fmtISO(bizDays(now,5))), method: consec >= 2 ? 'call' : 'email' };
+    days = 3; meth = consec >= 2 ? 'call' : 'email';
   }
+  else if (t === 'call-answered' || t === 'email-received') { days = 2; meth = t === 'email-received' ? 'email' : 'call'; }
+  else if (t === 'meeting-in-person' || t === 'meeting-online') { days = 1; meth = 'call'; }
+  else { days = 5; meth = 'call'; }
 
-  if (['call-answered','email-received','meeting-in-person','meeting-online'].includes(t)) {
-    const meth = t==='email-received' ? 'email' : 'call';
-    return { date: ensureWeekday(fmtISO(bizDays(now,2))), method: meth };
+  // Channel override by source/tier/stage
+  meth = _srcMethod(src, tier, stage, contact.interactions, t, meth);
+
+  return { date: ensureWeekday(fmtISO(bizDays(now, days))), method: meth };
+}
+
+function _srcMethod(src, tier, stage, interactions, intType, defaultMeth) {
+  const prevNoAnswer = (interactions||[]).some(i => i.interactionType === 'call-no-answer');
+  if (src === 'warm-referral') return prevNoAnswer ? 'text' : 'call';
+  if (src === 'fathers-network') return 'call';
+  if ((src === 'industry-event' || src === 'ccf-victoria-directory') && (stage === 'new' || stage === 'contacted')) return 'linkedin';
+  if (tier === 'cold' && stage === 'new') return 'linkedin';
+  if (intType === 'voicemail-left') {
+    const consec = countConsecutive(interactions, 'voicemail-left');
+    return consec >= 2 ? 'text' : (defaultMeth || 'call');
   }
-
-  if (t === 'not-interested') return { date: ensureWeekday(fmtISO(bizDays(now,60))), method:'call' };
-
-  return { date: ensureWeekday(fmtISO(bizDays(now,5))), method:'call' };
+  return defaultMeth || 'call';
 }
 
 function countConsecutive(ints, type) {
@@ -1692,12 +1736,19 @@ const M = {
 
     const sug = suggestFU(updated, ix);
     this._sug = sug;
-    const fuLbl = document.getElementById('fu-sug-lbl');
-    if (fuLbl) fuLbl.textContent = sug.isCheckIn ? 'Suggested Check-in' : 'Suggested Next Follow-up';
-    document.getElementById('fu-sug-txt').textContent = fmtDisp(sug.date)+' · '+sug.method;
-    document.getElementById('fu-date').value = sug.date;
-    document.getElementById('fu-meth').value = sug.method;
-    document.getElementById('fu-sug-wrap').style.display='block';
+    if (sug.manual) {
+      const fuWrap = document.getElementById('fu-sug-wrap');
+      fuWrap.style.display='block';
+      fuWrap.innerHTML='<p style="font-size:13px;color:rgba(0,0,0,0.45);font-style:italic;margin:0">This is a Father\'s Network contact — follow up manually at your discretion.</p>';
+    } else {
+      const fuLbl = document.getElementById('fu-sug-lbl');
+      if (fuLbl) fuLbl.textContent = sug.isCheckIn ? 'Suggested Check-in' : 'Suggested Next Follow-up';
+      const methLabel = sug.method === 'text' ? 'Text message' : sug.method;
+      document.getElementById('fu-sug-txt').textContent = fmtDisp(sug.date)+' · '+methLabel;
+      document.getElementById('fu-date').value = sug.date;
+      document.getElementById('fu-meth').value = sug.method;
+      document.getElementById('fu-sug-wrap').style.display='block';
+    }
     document.getElementById('log-foot').style.display='none';
     this._logSaved=true;
 
