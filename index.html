@@ -869,16 +869,15 @@ function bizDays(date, n) {
 function calDays(date, n) { const d=new Date(date); d.setDate(d.getDate()+n); return d; }
 
 function ensureWeekday(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
-  const w = d.getDay();
-  if (w === 6) d.setDate(d.getDate() + 2); // Saturday → Monday
-  else if (w === 0) d.setDate(d.getDate() + 1); // Sunday → Monday
-  // Also skip VIC public holidays
-  while (VIC_PH.has(fmtISO(d))) d.setDate(d.getDate() + 1);
-  // If skipping landed on a weekend, advance again
-  const w2 = d.getDay();
-  if (w2 === 6) d.setDate(d.getDate() + 2);
-  else if (w2 === 0) d.setDate(d.getDate() + 1);
+  if (!dateStr || typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    return ensureWeekday(fmtISO(calDays(new Date(), 42))); // safe fallback
+  }
+  const d = new Date(dateStr.slice(0,10) + 'T00:00:00');
+  if (isNaN(d.getTime())) return ensureWeekday(fmtISO(calDays(new Date(), 42)));
+  // Advance past weekends and VIC public holidays
+  while (d.getDay() === 0 || d.getDay() === 6 || VIC_PH.has(fmtISO(d))) {
+    d.setDate(d.getDate() + 1);
+  }
   return fmtISO(d);
 }
 
@@ -904,10 +903,10 @@ function relDate(ts) {
 /* ============================================================
    SECTION: FOLLOW-UP SCHEDULER
    ============================================================ */
-function suggestFU(contact, newInt) {
-  const now = new Date();
+function suggestFU(contact, newInt, baseDate) {
+  const now = baseDate || new Date();
   if ((contact.contactMode||'active-prospect') === 'relationship-builder') {
-    return { date: ensureWeekday(fmtISO(bizDays(now,42))), method:'call', isCheckIn:true };
+    return { date: ensureWeekday(fmtISO(calDays(now,42))), method:'call', isCheckIn:true };
   }
   const t = newInt.interactionType;
 
@@ -1430,7 +1429,8 @@ const DET = {
     if (!c) return;
     const last = (c.interactions||[])[0];
     if (!last) { toast('No interactions logged yet'); return; }
-    const sug = suggestFU(c, last);
+    const baseDate = new Date(last.timestamp);
+    const sug = suggestFU(c, last, baseDate);
     DB.update(id, {nextFollowUp:{date:sug.date,method:sug.method,confirmed:true}});
     this.render(id);
     toast('Follow-up date recalculated');
@@ -1842,7 +1842,7 @@ ${ixSummary||'None logged'}`;
     if(btn) btn.innerHTML='<span class="spinner"></span>';
     console.log('AI call starting, key:', key ? 'present' : 'missing');
     const ixOuts=(c.interactions||[]).slice(0,5).map(i=>i.interactionType+': '+i.outcome).join('; ')||'none';
-    const sixWks=ensureWeekday(fmtISO(bizDays(new Date(),42)));
+    const sixWks=ensureWeekday(fmtISO(calDays(new Date(),42)));
     const msg=`Name: ${c.name} | Company: ${c.company} | Role: ${c.jobTitle||'unknown'} | Notes: ${c.notes||'none'}\nRecent interactions: ${ixOuts}`;
     const system='You maintain long-term relationships for a construction recruitment firm. Return ONLY valid JSON with exactly these fields: {"checkInReason":"<personalised one sentence reason to reach out>","suggestedDate":"'+sixWks+'","reclassifyFlag":<true if notes mention role change, project win, or labour enquiry, else false>,"reclassifyReason":"<one sentence only if reclassifyFlag true, else empty string>"}';
     try {
