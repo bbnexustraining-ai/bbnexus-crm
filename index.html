@@ -443,6 +443,8 @@ a{color:var(--gold);text-decoration:none}
       <div class="fu-list" id="fu-rb-week"></div>
       <div class="sec-title">Reclassify Alerts</div>
       <div class="fu-list" id="fu-rb-reclassify"></div>
+      <div class="dash-group-hdr">Source Performance</div>
+      <div id="dash-src-perf" style="padding:0 16px 16px"></div>
     </div>
 
     <!-- CONTACTS -->
@@ -592,6 +594,23 @@ a{color:var(--gold);text-decoration:none}
             <button class="ms-btn rb" id="ms-rb" onclick="M.setMode('relationship-builder')">Relationship Builder</button>
           </div>
         </div>
+        <div class="fg">
+          <label>Source</label>
+          <select id="ac-source" onchange="M.toggleSourceOther()">
+            <option value="">— select —</option>
+            <option value="ccf-victoria-directory">CCF Victoria Directory</option>
+            <option value="linkedin-search">LinkedIn Search</option>
+            <option value="warm-referral">Warm Referral</option>
+            <option value="cold-call">Cold Call</option>
+            <option value="industry-event">Industry Event</option>
+            <option value="fathers-network">Father's Network</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="fg" id="ac-source-other-wrap" style="display:none">
+          <label>Specify source</label>
+          <input type="text" id="ac-source-other" placeholder="Describe the source">
+        </div>
         <div class="fg"><label>Notes</label><textarea id="ac-notes" placeholder="Initial notes…"></textarea></div>
       </div>
     </div>
@@ -689,6 +708,7 @@ const STAGE_LBL = {
 };
 
 const TIER_LBL = { warm:'Warm', cold:'Cold', 'active-client':'Active Client' };
+const SOURCE_LBL = {'ccf-victoria-directory':'CCF Victoria Directory','linkedin-search':'LinkedIn Search','warm-referral':'Warm Referral','cold-call':'Cold Call','industry-event':'Industry Event','fathers-network':"Father's Network",'other':'Other'};
 
 const INT_TYPES = [
   {v:'call-answered',l:'Call\nAnswered'},
@@ -1001,6 +1021,29 @@ const DASH = {
     this._fuList('fu-ov',    apConf.filter(c=>c.nextFollowUp.date<td).sort((a,b)=>b.heatScore-a.heatScore), true);
     this._fuList('fu-rb-week', rbConf.filter(c=>c.nextFollowUp.date>=td&&c.nextFollowUp.date<=wkEnd).sort((a,b)=>b.heatScore-a.heatScore), false, true);
     this._rbReclassify(rb.filter(c=>c.relationshipSuggestion&&c.relationshipSuggestion.reclassifyFlag));
+    this._srcPerf(cs);
+  },
+
+  _srcPerf(cs) {
+    const el=document.getElementById('dash-src-perf');
+    if (!el) return;
+    const map={};
+    cs.forEach(c=>{
+      const k=c.source||'';
+      if (!k) return;
+      if (!map[k]) map[k]={count:0,total:0};
+      map[k].count++;
+      map[k].total+=(c.heatScore||5);
+    });
+    const rows=Object.entries(map).map(([k,v])=>({key:k,count:v.count,avg:+(v.total/v.count).toFixed(1)}));
+    rows.sort((a,b)=>b.avg-a.avg);
+    if (!rows.length) { el.innerHTML='<div class="empty" style="padding:12px 0">No source data yet</div>'; return; }
+    el.innerHTML='<div style="background:var(--card);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden">'
+      +rows.map((r,i)=>`<div style="display:flex;align-items:center;padding:10px 14px;${i?'border-top:1px solid var(--bg)':''}">
+        <div style="flex:1;font-size:14px;font-weight:600;color:var(--text)">${x(SOURCE_LBL[r.key]||r.key)}</div>
+        <div style="font-size:13px;color:var(--text2);margin-right:16px">${r.count} contact${r.count!==1?'s':''}</div>
+        <div style="font-size:14px;font-weight:700;color:${hcol(Math.round(r.avg))}">${r.avg} avg heat</div>
+      </div>`).join('')+'</div>';
   },
 
   _rbReclassify(list) {
@@ -1158,10 +1201,11 @@ const DET = {
         ? (() => { const f=c.aiSummary.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').split('\n\n').map(p=>'<p style="margin-bottom:10px;line-height:1.7;font-size:13px;color:rgba(255,255,255,0.9)">'+p.replace(/\n/g,'<br>')+'</p>').join(''); return f; })()
         : `<p class="ai-ph">No summary yet. Tap Refresh to generate one.</p>`;
 
+    const srcVal = c.source==='other' ? (c.sourceOther||'Other') : (SOURCE_LBL[c.source]||'');
     const infoRows = [
       ['Company', c.company],['Title', c.jobTitle],['Phone', c.phone],
       ['Email', c.email],['LinkedIn', c.linkedIn],['Location', c.location],
-      ['How Met', c.howWeMet],['Notes', c.notes]
+      ['How Met', c.howWeMet],['Source', srcVal],['Notes', c.notes]
     ].filter(r=>r[1]);
 
     const nfu = c.nextFollowUp;
@@ -1390,11 +1434,18 @@ const M = {
     }
   },
 
+  toggleSourceOther() {
+    const v=document.getElementById('ac-source').value;
+    document.getElementById('ac-source-other-wrap').style.display=v==='other'?'block':'none';
+  },
+
   openAdd() {
     this._editId=null;
-    ['ac-name','ac-co','ac-title','ac-phone','ac-email','ac-li','ac-loc','ac-met','ac-notes'].forEach(id=>{
+    ['ac-name','ac-co','ac-title','ac-phone','ac-email','ac-li','ac-loc','ac-met','ac-notes','ac-source-other'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.value='';
     });
+    document.getElementById('ac-source').value='';
+    document.getElementById('ac-source-other-wrap').style.display='none';
     document.getElementById('ac-tier').value='cold';
     this.setMode('active-prospect');
     document.getElementById('ac-more').classList.remove('on');
@@ -1419,6 +1470,9 @@ const M = {
     document.getElementById('ac-met').value=c.howWeMet||'';
     document.getElementById('ac-notes').value=c.notes||'';
     document.getElementById('ac-tier').value=c.relationshipTier||'cold';
+    document.getElementById('ac-source').value=c.source||'';
+    document.getElementById('ac-source-other').value=c.sourceOther||'';
+    document.getElementById('ac-source-other-wrap').style.display=(c.source==='other')?'block':'none';
     this.setMode(c.contactMode||'active-prospect');
     document.getElementById('ac-more').classList.add('on');
     document.getElementById('mo-add-title').textContent='Edit Contact';
@@ -1440,6 +1494,8 @@ const M = {
       linkedIn:document.getElementById('ac-li').value.trim(),
       location:document.getElementById('ac-loc').value.trim(),
       howWeMet:document.getElementById('ac-met').value.trim(),
+      source:document.getElementById('ac-source').value,
+      sourceOther:document.getElementById('ac-source-other').value.trim(),
       relationshipTier:document.getElementById('ac-tier').value,
       notes:document.getElementById('ac-notes').value.trim(),
       stage:'new', interactions:[],
@@ -1468,6 +1524,8 @@ const M = {
       linkedIn:document.getElementById('ac-li').value.trim(),
       location:document.getElementById('ac-loc').value.trim(),
       howWeMet:document.getElementById('ac-met').value.trim(),
+      source:document.getElementById('ac-source').value,
+      sourceOther:document.getElementById('ac-source-other').value.trim(),
       notes:document.getElementById('ac-notes').value.trim(),
       relationshipTier:document.getElementById('ac-tier').value,
       contactMode:this._contactMode,
@@ -1905,6 +1963,7 @@ const IMP = {
     {v:'email', l:'Email'},
     {v:'notes', l:'Notes'},
     {v:'relationshipTier',l:'Relationship Tier'},
+    {v:'source',l:'Source'},
   ],
 
   openUpload() {
@@ -2072,10 +2131,14 @@ const IMP = {
   _makeContact(obj) {
     const tierRaw=(obj.relationshipTier||'').toLowerCase().replace(/[\s_]+/g,'-').trim();
     const tier=tierRaw==='warm'?'warm':tierRaw==='active-client'||tierRaw==='active client'?'active-client':tierRaw==='family-friend'||tierRaw==='family friend'||tierRaw==='referral'?'warm':tierRaw==='cold'?'cold':'cold';
+    const srcRaw=(obj.source||'').toLowerCase().replace(/[\s_]+/g,'-').trim();
+    const validSrcs=['ccf-victoria-directory','linkedin-search','warm-referral','cold-call','industry-event','fathers-network','other'];
+    const source=validSrcs.includes(srcRaw)?srcRaw:(srcRaw?'other':'');
     return {
       id:crypto.randomUUID(), name:obj.name, company:obj.company||'',
       jobTitle:obj.jobTitle||'', phone:obj.phone||'', email:obj.email||'',
       linkedIn:'', location:'', howWeMet:'', notes:obj.notes||'',
+      source, sourceOther:source==='other'?obj.source:'',
       relationshipTier:tier, stage:'new', interactions:[],
       nextFollowUp:{date:null,method:null,confirmed:false},
       heatScore:5, aiSummary:'',
