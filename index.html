@@ -1612,6 +1612,21 @@ const DET = {
         </div>
       </div>
 
+      <div class="nfu-card">
+        <h4>Linked Company</h4>
+        ${(()=>{
+          const lco = c.linkedCompanyId ? DB.getCo(c.linkedCompanyId) : null;
+          if (lco) return `<div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="t-link" style="font-size:14px;font-weight:600;cursor:pointer" onclick="R.go('company-detail','${lco.id}')">${x(lco.name)}</span>
+            <button class="btn btn-outline btn-sm" onclick="DET.unlinkCompany('${id}')">Unlink</button>
+          </div>`;
+          return `<div style="display:flex;align-items:center;gap:10px">
+            <span class="t-muted">No company linked</span>
+            <button class="btn btn-outline btn-sm" onclick="DET.openLinkCompany('${id}')">Link to Company</button>
+          </div>`;
+        })()}
+      </div>
+
       <div class="stage-sel">
         <h4>Stage</h4>
         <div class="stage-opts">
@@ -1657,6 +1672,59 @@ const DET = {
     CL.render();
     DASH.render();
     toast('Contact deleted');
+  },
+
+  openLinkCompany(cid) {
+    this._linkCid = cid;
+    const el = document.getElementById('mo-link-company');
+    if (el) {
+      document.getElementById('lc-search').value = '';
+      this._renderLinkCoList('');
+      el.classList.add('on');
+    }
+  },
+
+  _renderLinkCoList(q) {
+    const cid = this._linkCid;
+    const list = document.getElementById('lc-list');
+    if (!list) return;
+    const cos = DB.allCo().filter(co=>!q||(co.name||'').toLowerCase().includes(q));
+    list.innerHTML = cos.map(co=>`
+      <div class="co-row" style="cursor:pointer" onclick="DET.linkCompany('${cid}','${co.id}')">
+        <div style="font-weight:600;font-size:14px">${x(co.name)}</div>
+        <div style="font-size:12px;color:var(--muted)">${x(co.suburb||'')}${co.tier?' · Tier '+co.tier:''}</div>
+      </div>`).join('')||'<div style="color:var(--muted);padding:10px;font-size:13px">No companies found</div>';
+  },
+
+  linkCompany(cid, coId) {
+    const c = DB.get(cid); const co = DB.getCo(coId);
+    if (!c || !co) return;
+    // Remove from old company if any
+    if (c.linkedCompanyId && c.linkedCompanyId !== coId) {
+      const old = DB.getCo(c.linkedCompanyId);
+      if (old) {
+        const oldIds = (old.linkedContactIds||[]).filter(id=>id!==cid);
+        DB.updateCo(c.linkedCompanyId, {linkedContactIds: oldIds});
+      }
+    }
+    DB.update(cid, {linkedCompanyId: coId});
+    const ids = co.linkedContactIds||[];
+    if (!ids.includes(cid)) { ids.push(cid); DB.updateCo(coId, {linkedContactIds: ids}); }
+    M.close('mo-link-company');
+    this.render(cid);
+    toast('Linked to ' + co.name);
+  },
+
+  unlinkCompany(cid) {
+    const c = DB.get(cid); if (!c || !c.linkedCompanyId) return;
+    const co = DB.getCo(c.linkedCompanyId);
+    if (co) {
+      const ids = (co.linkedContactIds||[]).filter(id=>id!==cid);
+      DB.updateCo(c.linkedCompanyId, {linkedContactIds: ids});
+    }
+    DB.update(cid, {linkedCompanyId: null});
+    this.render(cid);
+    toast('Company unlinked');
   },
 
   delInteraction(cid, iid) {
@@ -1840,6 +1908,7 @@ const M = {
       if (coRec) {
         const ids = coRec.linkedContactIds || [];
         if (!ids.includes(c.id)) { ids.push(c.id); DB.updateCo(coLinkId,{linkedContactIds:ids}); }
+        DB.update(c.id, {linkedCompanyId: coLinkId});
         if (R.cur==='company-detail') COD.render(coLinkId);
       }
     }
@@ -2885,8 +2954,10 @@ const COD = {
     const co=DB.getCo(coId); if(!co) return;
     const ids=co.linkedContactIds||[];
     const idx=ids.indexOf(cid);
+    const linking = idx<0;
     if(idx>=0) ids.splice(idx,1); else ids.push(cid);
     DB.updateCo(coId,{linkedContactIds:ids});
+    DB.update(cid, {linkedCompanyId: linking ? coId : null});
     this._renderLinkList(coId,(document.getElementById('link-co-search').value||'').toLowerCase());
     this.render(coId);
   },
@@ -3354,6 +3425,21 @@ AUTH.init();
         <input type="search" class="search-in" id="link-co-search" placeholder="Search contacts…" oninput="COD.filterLinkSearch()" style="padding-left:14px">
       </div>
       <div id="link-co-list" style="max-height:300px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="mo-link-company">
+  <div class="sheet">
+    <div class="m-hdr">
+      <h3>Link to Company</h3>
+      <button class="m-close" onclick="M.close('mo-link-company')">×</button>
+    </div>
+    <div class="m-body">
+      <div class="fg">
+        <input type="search" class="search-in" id="lc-search" placeholder="Search companies…" oninput="DET._renderLinkCoList(this.value.toLowerCase())" style="padding-left:14px">
+      </div>
+      <div id="lc-list" style="max-height:340px;overflow-y:auto"></div>
     </div>
   </div>
 </div>
