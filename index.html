@@ -631,7 +631,7 @@ a{color:var(--gold);text-decoration:none}
 </div><!-- /app -->
 
 <!-- FAB -->
-<button class="fab" id="fab" style="display:none" onclick="R.cur==='companies'?COL.openAdd():M.openAdd()" aria-label="Add">+</button>
+<button class="fab" id="fab" style="display:none" onclick="M.openAdd()" aria-label="Add">+</button>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -1179,6 +1179,7 @@ const R = {
     this.cur = screen;
     const fab = document.getElementById('fab');
     fab.style.display = (screen==='dash'||screen==='contacts'||screen==='companies') ? 'flex' : 'none';
+    fab.onclick = screen==='companies' ? ()=>COL.openAdd() : ()=>M.openAdd();
 
     if (screen==='dash') DASH.render();
     if (screen==='contacts') CL.render();
@@ -2539,7 +2540,7 @@ const COL = {
     ['co-t1','co-t2','co-t3','co-t4','co-texcl'].forEach(id=>{
       const b=document.getElementById(id); if(b){b.className='tier-btn';}
     });
-    M.open('mo-addco');
+    document.getElementById('mo-addco').classList.add('on');
   },
 
   setTier(v) {
@@ -2715,7 +2716,7 @@ const COD = {
     const list = document.getElementById('link-co-list');
     if (list) this._renderLinkList(coId, '');
     document.getElementById('link-co-search').value='';
-    M.open('mo-linkco');
+    document.getElementById('mo-linkco').classList.add('on');
   },
 
   filterLinkSearch() {
@@ -2787,7 +2788,7 @@ const CALL = {
       const b=document.getElementById(id); if(b) b.classList.remove('on');
     });
     document.getElementById('co-outcome-grid').style.display='grid';
-    M.open('mo-callco');
+    document.getElementById('mo-callco').classList.add('on');
   },
 
   selectOutcome(out) {
