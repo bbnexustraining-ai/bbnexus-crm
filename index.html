@@ -1698,8 +1698,8 @@ const DET = {
   },
 
   openLinkCompany(cid) {
-    this._linkCid = cid;
-    const el = document.getElementById('mo-link-company');
+    M._linkingContactId = cid;
+    const el = document.getElementById('mo-link-co');
     if (el) {
       document.getElementById('lc-search').value = '';
       this._renderLinkCoList('');
@@ -1708,21 +1708,26 @@ const DET = {
   },
 
   _renderLinkCoList(q) {
-    const cid = this._linkCid;
+    const cid = M._linkingContactId;
     const list = document.getElementById('lc-list');
     if (!list) return;
     const cos = DB.allCo().filter(co=>!q||(co.name||'').toLowerCase().includes(q));
-    list.innerHTML = cos.map(co=>`
-      <div class="co-row" style="cursor:pointer" onclick="DET.linkCompany('${cid}','${co.id}')">
-        <div style="font-weight:600;font-size:14px">${x(co.name)}</div>
-        <div style="font-size:12px;color:var(--muted)">${x(co.suburb||'')}${co.tier?' · Tier '+co.tier:''}</div>
-      </div>`).join('')||'<div style="color:var(--muted);padding:10px;font-size:13px">No companies found</div>';
+    list.innerHTML = cos.map(co=>{
+      const tierCls = CO_TIER_CLASS[co.tier]||'b-t4';
+      const tierLbl = CO_TIER_LBL[co.tier]||co.tier||'';
+      return `<div class="co-row" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px" onclick="DET.linkCompany('${cid}','${co.id}')">
+        <div>
+          <div style="font-weight:600;font-size:14px">${x(co.name)}</div>
+          ${co.suburb?`<div style="font-size:12px;color:var(--muted)">${x(co.suburb)}</div>`:''}
+        </div>
+        <span class="badge ${tierCls}" style="flex-shrink:0">${x(tierLbl)}</span>
+      </div>`;
+    }).join('')||'<div style="color:var(--muted);padding:10px;font-size:13px">No companies found</div>';
   },
 
   linkCompany(cid, coId) {
     const c = DB.get(cid); const co = DB.getCo(coId);
     if (!c || !co) return;
-    // Remove from old company if any
     if (c.linkedCompanyId && c.linkedCompanyId !== coId) {
       const old = DB.getCo(c.linkedCompanyId);
       if (old) {
@@ -1733,14 +1738,14 @@ const DET = {
     DB.update(cid, {linkedCompanyId: coId});
     const ids = co.linkedContactIds||[];
     if (!ids.includes(cid)) { ids.push(cid); DB.updateCo(coId, {linkedContactIds: ids}); }
-    M.close('mo-link-company');
+    M.close('mo-link-co');
     this.render(cid);
-    toast('Linked to ' + co.name);
+    toast('Company linked');
   },
 
   createAndLinkCompany(cid) {
     const c = DB.get(cid);
-    M.close('mo-link-company');
+    M.close('mo-link-co');
     COL.openAdd();
     setTimeout(() => {
       const nameEl = document.getElementById('co-name');
@@ -1832,6 +1837,7 @@ const M = {
   _editId: null,
   _contactMode: 'active-prospect',
   _pendingCoLink: null,
+  _linkingContactId: null,
 
   setMode(m) {
     this._contactMode = m;
@@ -3619,11 +3625,11 @@ AUTH.init();
   </div>
 </div>
 
-<div class="mo" id="mo-link-company">
+<div class="mo" id="mo-link-co">
   <div class="sheet">
     <div class="m-hdr">
       <h3>Link to Company</h3>
-      <button class="m-close" onclick="M.close('mo-link-company')">×</button>
+      <button class="m-close" onclick="M.close('mo-link-co')">×</button>
     </div>
     <div class="m-body">
       <div class="fg">
@@ -3631,7 +3637,7 @@ AUTH.init();
       </div>
       <div id="lc-list" style="max-height:300px;overflow-y:auto"></div>
       <div style="padding:12px 0 4px">
-        <button class="btn btn-outline btn-block" id="lc-create-btn" onclick="DET.createAndLinkCompany(DET._linkCid)">+ Create new company</button>
+        <button class="btn btn-block" style="border:1.5px solid var(--green);color:var(--green);background:transparent;font-weight:600" onclick="DET.createAndLinkCompany(M._linkingContactId)">+ Create new company</button>
       </div>
     </div>
   </div>
