@@ -1507,9 +1507,10 @@ const DET = {
     ].filter(r=>r[1]);
 
     const nfu = c.nextFollowUp;
+    const _nfuWin = (nfu&&nfu.date&&nfu.method==='call') ? _callingWindow(nfu.date) : '';
     const nfuHTML = nfu && nfu.confirmed && nfu.date
       ? `<div class="nfu-conf">
-          <div style="flex:1"><div class="nfu-date">${fmtDisp(nfu.date)}</div><div class="nfu-meth">${nfu.method}</div></div>
+          <div style="flex:1"><div class="nfu-date">${fmtDisp(nfu.date)}</div><div class="nfu-meth">${nfu.method}${_nfuWin?`<br><span style="font-size:12px;color:#8B7335;font-weight:600">${_nfuWin}</span>`:''}</div></div>
           <button class="btn btn-outline btn-sm" onclick="DET.recalcFU('${id}')" style="margin-right:4px">Recalculate</button>
           <button class="btn btn-outline btn-sm" onclick="DET.clearFU('${id}')">Clear</button>
         </div>`
@@ -2729,6 +2730,11 @@ const COD = {
     const linked = (co.linkedContactIds||[]).map(cid=>DB.get(cid)).filter(Boolean);
     const ints = (co.interactions||[]);
     const stageOpts = STAGES.map(s=>`<button class="stage-opt${co.stage===s?' on':''}" onclick="COD.setStage('${id}','${s}')">${STAGE_LBL[s]}</button>`).join('');
+    const coNfu = co.nextFollowUp;
+    const coNfuWin = (coNfu&&coNfu.date&&coNfu.method==='call') ? _callingWindow(coNfu.date) : '';
+    const coNfuRow = coNfu&&coNfu.date
+      ? `<div class="ci-row"><span class="ci-lbl">Next call</span><div><span style="font-weight:600;color:var(--green)">${fmtDisp(coNfu.date)}</span>${coNfuWin?`<br><span style="font-size:12px;color:#8B7335;font-weight:600">${coNfuWin}</span>`:''}</div></div>`
+      : '';
 
     el.innerHTML = `
       <div class="back-btn" onclick="R.go('companies')">
@@ -2762,6 +2768,7 @@ const COD = {
         <div class="ci-row"><span class="ci-lbl">Suburb</span><span>${x(co.suburb||'—')}</span></div>
         <div class="ci-row"><span class="ci-lbl">Trade</span><span>${x(co.primaryTrade||'—')}</span></div>
         <div class="ci-row"><span class="ci-lbl">Calls</span><span>${co.callAttempts||0} attempts · ${co.voicemailCount||0} voicemails</span></div>
+        ${coNfuRow}
         ${co.notes?`<div class="ci-row"><span class="ci-lbl">Notes</span><span>${x(co.notes)}</span></div>`:''}
         <div class="ci-row"><span class="ci-lbl">Cap. statement</span><div>${capBanner}</div></div>
         <div class="ci-row" style="align-items:center">
