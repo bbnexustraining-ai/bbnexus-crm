@@ -352,6 +352,48 @@ a{color:var(--gold);text-decoration:none}
 .dash-group-hdr:first-child{border-top:none;margin-top:0}
 .rb-reclassify{background:#FFF8E1;border-left:3px solid var(--gold)}
 
+/* ============================================================
+   SECTION: COMPANIES
+   ============================================================ */
+.co-card{background:var(--card);border-radius:var(--r);margin:0 16px 10px;box-shadow:var(--sh);overflow:hidden;cursor:pointer}
+.co-card-hdr{padding:14px 14px 10px;display:flex;align-items:flex-start;gap:10px}
+.co-icon{width:40px;height:40px;border-radius:var(--rs);background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.co-info{flex:1;min-width:0}
+.co-name{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.co-sub{font-size:13px;color:var(--text2);margin-top:1px}
+.co-badges{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center}
+.b-t1{background:#D4EDDA;color:#1B4D2E}
+.b-t2{background:#FFF3CD;color:#7a6430}
+.b-t3{background:#D0D8ED;color:#1B2A4A}
+.b-t4{background:#F0F0F0;color:#555}
+.b-excl{background:#FDDDE0;color:#a01a22}
+.co-foot{padding:8px 14px 12px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--bg)}
+.tier-sel{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:4px}
+.tier-btn{padding:10px 4px;border-radius:var(--rs);border:1.5px solid var(--border);font-size:12px;font-weight:700;text-align:center;color:var(--text2)}
+.tier-btn.on-t1{border-color:#1B4D2E;background:#D4EDDA;color:#1B4D2E}
+.tier-btn.on-t2{border-color:#8B7335;background:#FFF3CD;color:#7a6430}
+.tier-btn.on-t3{border-color:#1B2A4A;background:#D0D8ED;color:#1B2A4A}
+.tier-btn.on-t4{border-color:#555;background:#F0F0F0;color:#555}
+.tier-btn.on-excl{border-color:#a01a22;background:#FDDDE0;color:#a01a22}
+.call-co-btn{background:var(--gold);color:#fff;border-radius:var(--rs);padding:16px 20px;font-size:18px;font-weight:700;width:100%;display:flex;align-items:center;justify-content:center;gap:10px;letter-spacing:-0.3px}
+.call-co-btn:active{background:#7a6430}
+.outcome-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.outcome-btn{padding:18px 10px;border-radius:var(--rs);border:2px solid var(--border);font-size:14px;font-weight:700;text-align:center;color:var(--text2);line-height:1.4}
+.outcome-btn.on{border-color:var(--gold);background:rgba(139,115,53,0.1);color:var(--gold)}
+.cue-card{background:rgba(27,77,46,0.06);border:1.5px solid rgba(27,77,46,0.2);border-radius:var(--rs);padding:14px 16px;margin-top:12px}
+.cue-card h5{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--green);margin-bottom:6px}
+.cue-card p{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px}
+.cue-card p:last-child{margin-bottom:0}
+.cue-when{font-size:13px;font-weight:600;color:var(--navy);background:rgba(27,42,74,0.08);border-radius:6px;padding:8px 10px;margin-top:6px}
+.cap-banner{background:#FFF3CD;border:1.5px solid var(--gold);border-radius:var(--rs);padding:14px 16px;margin:0 16px 12px;display:flex;align-items:center;gap:10px}
+.cap-banner p{font-size:14px;font-weight:700;color:#7a6430;flex:1}
+.tier-legend{background:var(--card);border-radius:var(--r);margin:0 16px 12px;box-shadow:var(--sh);overflow:hidden}
+.tier-legend-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bg);font-size:13px}
+.tier-legend-row:last-child{border-bottom:none}
+.dm-sub{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.dm-sub-btn{padding:14px 8px;border-radius:var(--rs);border:2px solid var(--border);font-size:13px;font-weight:700;text-align:center;color:var(--text2)}
+.dm-sub-btn.on{border-color:var(--gold);background:rgba(139,115,53,0.1);color:var(--gold)}
+
 </style>
 </head>
 <body>
@@ -412,6 +454,10 @@ a{color:var(--gold);text-decoration:none}
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Contacts
       </button>
+      <button class="sb-item" id="sb-companies" onclick="R.go('companies')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Companies
+      </button>
       <button class="sb-item" id="sb-settings" onclick="R.go('settings')">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3"/></svg>
         Settings
@@ -467,6 +513,36 @@ a{color:var(--gold);text-decoration:none}
     <!-- DETAIL -->
     <div class="screen" id="s-detail">
       <div id="detail"></div>
+    </div>
+
+    <!-- COMPANIES -->
+    <div class="screen" id="s-companies">
+      <div class="sh" style="display:flex;align-items:center;justify-content:space-between">
+        <div><h2>Companies</h2><p id="co-count"></p></div>
+        <button style="font-size:12px;font-weight:600;color:var(--gold);background:none;border:none;cursor:pointer" onclick="COL.toggleLegend()">Tier guide</button>
+      </div>
+      <div id="co-tier-legend" style="display:none">
+        <div class="tier-legend">
+          <div class="tier-legend-row"><span class="badge b-t1" style="min-width:50px;justify-content:center">Tier 1</span><span style="color:var(--text2)">Formwork &amp; steel fixing subcontractors. Highest priority. Direct buyers.</span></div>
+          <div class="tier-legend-row"><span class="badge b-t2" style="min-width:50px;justify-content:center">Tier 2</span><span style="color:var(--text2)">Civil subcontractors — concrete structures, bridges, retaining walls, culverts, drainage.</span></div>
+          <div class="tier-legend-row"><span class="badge b-t3" style="min-width:50px;justify-content:center">Tier 3</span><span style="color:var(--text2)">Mid-tier civil contractors under $100M. May use direct labour hire for surge periods.</span></div>
+          <div class="tier-legend-row"><span class="badge b-t4" style="min-width:50px;justify-content:center">Tier 4</span><span style="color:var(--text2)">Larger civil contractors. Outreach goal is market intelligence and introductions.</span></div>
+          <div class="tier-legend-row"><span class="badge b-excl" style="min-width:50px;justify-content:center">Excl</span><span style="color:var(--text2)">Traffic management, earthworks-only, or landscaping civil. Out of scope.</span></div>
+        </div>
+      </div>
+      <div class="search-wrap">
+        <div class="search-inner">
+          <svg class="search-ico" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/></svg>
+          <input type="search" class="search-in" id="cosearch" placeholder="Search name or suburb…" oninput="COL.filter()">
+        </div>
+        <div class="chips" id="co-fchips"></div>
+      </div>
+      <div id="colist" style="padding-top:8px"></div>
+    </div>
+
+    <!-- COMPANY DETAIL -->
+    <div class="screen" id="s-company-detail">
+      <div id="co-detail"></div>
     </div>
 
     <!-- SETTINGS -->
@@ -541,6 +617,10 @@ a{color:var(--gold);text-decoration:none}
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Contacts
     </button>
+    <button class="tab" id="tab-companies" onclick="R.go('companies')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Companies
+    </button>
     <button class="tab" id="tab-settings" onclick="R.go('settings')">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3"/></svg>
       Settings
@@ -551,7 +631,7 @@ a{color:var(--gold);text-decoration:none}
 </div><!-- /app -->
 
 <!-- FAB -->
-<button class="fab" id="fab" style="display:none" onclick="M.openAdd()" aria-label="Add contact">+</button>
+<button class="fab" id="fab" style="display:none" onclick="R.cur==='companies'?COL.openAdd():M.openAdd()" aria-label="Add">+</button>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -738,8 +818,18 @@ const INT_NAME = {
 /* ============================================================
    SECTION: DATA LAYER (localStorage)
    ============================================================ */
+const CO_SOURCE_LBL = {
+  'ccf-victoria-directory':'CCF Victoria Directory','master-builders-victoria':'Master Builders Victoria',
+  'sourceable':'Sourceable','major-projects-victoria':'Major Projects Victoria',
+  'wyndham-council':'Wyndham Council','casey-council':'Casey Council','melton-council':'Melton Council',
+  'warm-referral':'Warm Referral','other':'Other'
+};
+const CO_TIER_LBL = {'1':'Tier 1','2':'Tier 2','3':'Tier 3','4':'Tier 4','excluded':'Excluded'};
+const CO_TIER_CLASS = {'1':'b-t1','2':'b-t2','3':'b-t3','4':'b-t4','excluded':'b-excl'};
+
 const DB = {
   _c: [],
+  _co: [],
 
   load() {
     const r = localStorage.getItem('bb_contacts');
@@ -749,9 +839,14 @@ const DB = {
       if (!c.conversionScore) c.conversionScore = {score:null,explanation:'',lastUpdated:null};
       if (!c.relationshipSuggestion) c.relationshipSuggestion = {checkInReason:'',suggestedDate:null,reclassifyFlag:false,reclassifyReason:''};
     });
+    const cr = localStorage.getItem('bb_companies');
+    this._co = cr ? JSON.parse(cr) : [];
   },
 
-  save() { localStorage.setItem('bb_contacts', JSON.stringify(this._c)); },
+  save() {
+    localStorage.setItem('bb_contacts', JSON.stringify(this._c));
+    localStorage.setItem('bb_companies', JSON.stringify(this._co));
+  },
 
   all() { return this._c; },
 
@@ -768,6 +863,17 @@ const DB = {
   },
 
   delete(id) { this._c = this._c.filter(c => c.id !== id); this.save(); },
+
+  allCo() { return this._co; },
+  getCo(id) { return this._co.find(c=>c.id===id)||null; },
+  addCo(c) { this._co.push(c); this.save(); },
+  updateCo(id, u) {
+    const i=this._co.findIndex(c=>c.id===id);
+    if (i<0) return null;
+    this._co[i]={...this._co[i],...u,updatedAt:new Date().toISOString()};
+    this.save(); return this._co[i];
+  },
+  deleteCo(id) { this._co=this._co.filter(c=>c.id!==id); this.save(); },
 
   addInteraction(cid, ix) {
     const c = this.get(cid);
@@ -1072,12 +1178,14 @@ const R = {
 
     this.cur = screen;
     const fab = document.getElementById('fab');
-    fab.style.display = (screen==='dash'||screen==='contacts') ? 'flex' : 'none';
+    fab.style.display = (screen==='dash'||screen==='contacts'||screen==='companies') ? 'flex' : 'none';
 
     if (screen==='dash') DASH.render();
     if (screen==='contacts') CL.render();
     if (screen==='detail' && id) { this.detailId=id; DET.render(id); }
     if (screen==='settings') ST.init();
+    if (screen==='companies') COL.render();
+    if (screen==='company-detail' && id) { this.coDetailId=id; COD.render(id); }
   }
 };
 
@@ -1519,6 +1627,7 @@ const M = {
   _logSaved: false,
   _editId: null,
   _contactMode: 'active-prospect',
+  _pendingCoLink: null,
 
   setMode(m) {
     this._contactMode = m;
@@ -1621,6 +1730,17 @@ const M = {
       createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()
     };
     DB.add(c);
+    // Bidirectional link if created from company flow
+    if (this._pendingCoLink) {
+      const coLinkId = this._pendingCoLink;
+      this._pendingCoLink = null;
+      const coRec = DB.getCo(coLinkId);
+      if (coRec) {
+        const ids = coRec.linkedContactIds || [];
+        if (!ids.includes(c.id)) { ids.push(c.id); DB.updateCo(coLinkId,{linkedContactIds:ids}); }
+        if (R.cur==='company-detail') COD.render(coLinkId);
+      }
+    }
     this.close('mo-add');
     CL.render();
     toast('Contact added');
@@ -2299,6 +2419,617 @@ document.getElementById('lp').addEventListener('keydown',e=>{ if(e.key==='Enter'
 document.getElementById('lu').addEventListener('keydown',e=>{ if(e.key==='Enter') AUTH.login(); });
 
 /* ============================================================
+   SECTION: COMPANY HEAT SCORE
+   ============================================================ */
+function calcCoHeat(co) {
+  let s = 5;
+  if (co.lastInteractionAt) {
+    const days = (Date.now() - new Date(co.lastInteractionAt)) / 86400000;
+    s = Math.max(1, s - Math.floor(days / 7) * 0.5);
+  }
+  const out = co.lastCallOutcome || '';
+  if (out === 'decision-maker-interested') s += 3;
+  else if (out === 'decision-maker-no-interest') s += 1;
+  else if (out === 'voicemail') s -= 0.5;
+  else if (out === 'no-answer') s -= 1;
+  return Math.min(10, Math.max(1, Math.round(s * 10) / 10));
+}
+
+/* ============================================================
+   SECTION: CALLING WINDOW UTIL
+   ============================================================ */
+function nextCallWindow(fromNow) {
+  const now = fromNow || new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const todayFrac = h + m / 60;
+  // windows: 7:30–9:00 and 11:00–14:00
+  if (todayFrac < 9) return 'Today 7:30am–9am';
+  if (todayFrac < 11) return 'Today 11am–2pm';
+  if (todayFrac < 14) return 'Today 11am–2pm';
+  // after 2pm → tomorrow morning
+  const tom = bizDays(now, 1);
+  return fmtDisp(fmtISO(tom)) + ' 7:30am–9am';
+}
+
+/* ============================================================
+   SECTION: COMPANY LIST (COL)
+   ============================================================ */
+const COL = {
+  _tier: null,
+  _stage: null,
+  _q: '',
+
+  render() {
+    const cos = DB.allCo();
+    cos.forEach(co => { co.heatScore = calcCoHeat(co); });
+    DB.save();
+    const el = document.getElementById('colist');
+    if (!el) return;
+    const count = document.getElementById('co-count');
+    if (count) count.textContent = cos.length + ' compan' + (cos.length===1?'y':'ies');
+    this._renderChips();
+    this.filter();
+  },
+
+  _renderChips() {
+    const el = document.getElementById('co-fchips');
+    if (!el) return;
+    const tiers = [['1','Tier 1'],['2','Tier 2'],['3','Tier 3'],['4','Tier 4'],['excluded','Excluded']];
+    el.innerHTML = tiers.map(([v,l])=>`<button class="chip${this._tier===v?' on':''}" onclick="COL.filterTier('${v}')">${l}</button>`).join('');
+  },
+
+  filterTier(v) { this._tier = this._tier===v ? null : v; this._renderChips(); this.filter(); },
+
+  filter() {
+    this._q = (document.getElementById('cosearch')||{}).value || '';
+    const q = this._q.toLowerCase();
+    let cos = DB.allCo().map(co=>({...co,heatScore:calcCoHeat(co)}));
+    if (q) cos = cos.filter(co=>(co.name||'').toLowerCase().includes(q)||(co.suburb||'').toLowerCase().includes(q));
+    if (this._tier) cos = cos.filter(co=>co.tier===this._tier);
+    cos.sort((a,b)=>b.heatScore-a.heatScore);
+    const el = document.getElementById('colist');
+    if (!el) return;
+    if (!cos.length) { el.innerHTML='<div class="empty">No companies yet. Tap + to add one.</div>'; return; }
+    el.innerHTML = cos.map(co=>this._card(co)).join('');
+  },
+
+  _card(co) {
+    const tierCls = CO_TIER_CLASS[co.tier]||'b-t4';
+    const tierLbl = CO_TIER_LBL[co.tier]||co.tier;
+    const sc = co.heatScore||5;
+    const srcLbl = co.source==='other'?(co.sourceOther||'Other'):(CO_SOURCE_LBL[co.source]||'');
+    const linked = (co.linkedContactIds||[]).length;
+    const lastInt = co.lastInteractionAt ? relDate(co.lastInteractionAt) : 'No calls yet';
+    return `<div class="co-card" onclick="R.go('company-detail','${co.id}')">
+      <div class="co-card-hdr">
+        <div class="co-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="co-info">
+          <div class="co-name">${x(co.name)}</div>
+          <div class="co-sub">${x(co.suburb||'')}${co.suburb&&co.primaryTrade?' · ':''} ${x(co.primaryTrade||'')}</div>
+          <div class="co-badges">
+            <span class="badge ${tierCls}">${x(tierLbl)}</span>
+            <span class="badge b-stage">${x(STAGE_LBL[co.stage]||co.stage||'New')}</span>
+            ${srcLbl?`<span class="badge" style="background:var(--bg);color:var(--muted)">${x(srcLbl)}</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <div class="hs"><div class="dot ${band(sc)}"></div>${sc}</div>
+        </div>
+      </div>
+      <div class="co-foot">
+        <span style="font-size:12px;color:var(--muted)">${x(lastInt)}</span>
+        <span style="font-size:12px;color:var(--text2)">${linked} contact${linked!==1?'s':''}</span>
+      </div>
+    </div>`;
+  },
+
+  toggleLegend() {
+    const el=document.getElementById('co-tier-legend');
+    if(el) el.style.display=el.style.display==='none'?'block':'none';
+  },
+
+  openAdd() {
+    ['co-name','co-suburb','co-trade','co-notes','co-source-other'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+    document.getElementById('co-source').value='';
+    document.getElementById('co-source-other-wrap').style.display='none';
+    this._tier=null;
+    ['co-t1','co-t2','co-t3','co-t4','co-texcl'].forEach(id=>{
+      const b=document.getElementById(id); if(b){b.className='tier-btn';}
+    });
+    M.open('mo-addco');
+  },
+
+  setTier(v) {
+    this._tier=v;
+    const map={'1':'co-t1','2':'co-t2','3':'co-t3','4':'co-t4','excluded':'co-texcl'};
+    const cls={'1':'on-t1','2':'on-t2','3':'on-t3','4':'on-t4','excluded':'on-excl'};
+    ['1','2','3','4','excluded'].forEach(t=>{
+      const b=document.getElementById(map[t]); if(b) b.className='tier-btn'+(v===t?' '+cls[t]:'');
+    });
+  },
+
+  toggleCoSourceOther() {
+    const v=document.getElementById('co-source').value;
+    document.getElementById('co-source-other-wrap').style.display=v==='other'?'block':'none';
+  },
+
+  saveCompany() {
+    const name=(document.getElementById('co-name').value||'').trim();
+    if (!name) { toast('Company name is required'); return; }
+    if (!this._tier) { toast('Please select a tier'); return; }
+    const src=document.getElementById('co-source').value;
+    const co = {
+      id: crypto.randomUUID(),
+      name,
+      tier: this._tier,
+      source: src,
+      sourceOther: src==='other' ? document.getElementById('co-source-other').value.trim() : '',
+      suburb: document.getElementById('co-suburb').value.trim(),
+      primaryTrade: document.getElementById('co-trade').value.trim(),
+      notes: document.getElementById('co-notes').value.trim(),
+      stage: 'new',
+      heatScore: 5,
+      callAttempts: 0,
+      voicemailCount: 0,
+      lastCallOutcome: '',
+      lastInteractionAt: null,
+      capabilityStatementSent: false,
+      capabilityStatementSentAt: null,
+      linkedContactIds: [],
+      interactions: [],
+      nextFollowUp: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    DB.addCo(co);
+    M.close('mo-addco');
+    this._tier = null;
+    COL.render();
+    toast('Company added');
+  }
+};
+
+/* ============================================================
+   SECTION: COMPANY DETAIL (COD)
+   ============================================================ */
+const COD = {
+  _id: null,
+
+  render(id) {
+    this._id = id;
+    const co = DB.getCo(id);
+    if (!co) { R.go('companies'); return; }
+    co.heatScore = calcCoHeat(co);
+    const el = document.getElementById('co-detail');
+    if (!el) return;
+    const sc = co.heatScore;
+    const tierCls = CO_TIER_CLASS[co.tier]||'b-t4';
+    const tierLbl = CO_TIER_LBL[co.tier]||co.tier;
+    const srcLbl = co.source==='other'?(co.sourceOther||'Other'):(CO_SOURCE_LBL[co.source]||'');
+    const capBanner = co.capabilityStatementSent
+      ? `<p style="font-size:13px;color:var(--green);font-weight:600;margin-top:8px">✓ Capability statement sent ${co.capabilityStatementSentAt?fmtDisp(co.capabilityStatementSentAt.split('T')[0]):''}</p>`
+      : `<button class="btn btn-outline btn-sm mt8" onclick="COD.markCapSent('${id}')">Mark as Sent</button>`;
+    const linked = (co.linkedContactIds||[]).map(cid=>DB.get(cid)).filter(Boolean);
+    const ints = (co.interactions||[]);
+    const stageOpts = STAGES.map(s=>`<button class="stage-opt${co.stage===s?' on':''}" onclick="COD.setStage('${id}','${s}')">${STAGE_LBL[s]}</button>`).join('');
+
+    el.innerHTML = `
+      <div class="back-btn" onclick="R.go('companies')">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Companies
+      </div>
+      ${co.capabilityStatementSent===false && co.stage==='engaged'?`<div class="cap-banner"><span style="font-size:24px">📄</span><p>Send capability statement NOW. Within 2 hours.</p><button class="btn btn-gold btn-sm" onclick="COD.markCapSent('${id}')">Mark Sent</button></div>`:''}
+      <div class="ci-card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px">
+          <div>
+            <h2 style="font-size:20px;color:var(--text)">${x(co.name)}</h2>
+            <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+              <span class="badge ${tierCls}">${x(tierLbl)}</span>
+            </div>
+          </div>
+          <div class="hs" style="font-size:18px;font-weight:700"><div class="dot ${band(sc)}" style="width:14px;height:14px"></div>${sc}</div>
+        </div>
+        <div class="stage-sel" style="margin:0 0 0">
+          <h4 style="margin:0 0 10px">Stage</h4>
+          <div class="stage-opts">${stageOpts}</div>
+        </div>
+      </div>
+      <div style="padding:0 16px 12px">
+        <button class="call-co-btn" onclick="CALL.open('${id}')">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" width="24" height="24"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Call This Company
+        </button>
+      </div>
+      <div class="ci-card">
+        <div class="ci-row"><span class="ci-lbl">Source</span><span>${x(srcLbl||'—')}</span></div>
+        <div class="ci-row"><span class="ci-lbl">Suburb</span><span>${x(co.suburb||'—')}</span></div>
+        <div class="ci-row"><span class="ci-lbl">Trade</span><span>${x(co.primaryTrade||'—')}</span></div>
+        <div class="ci-row"><span class="ci-lbl">Calls</span><span>${co.callAttempts||0} attempts · ${co.voicemailCount||0} voicemails</span></div>
+        ${co.notes?`<div class="ci-row"><span class="ci-lbl">Notes</span><span>${x(co.notes)}</span></div>`:''}
+        <div class="ci-row"><span class="ci-lbl">Cap. statement</span><div>${capBanner}</div></div>
+        <div class="ci-row" style="align-items:center">
+          <span class="ci-lbl">Delete</span>
+          <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red)" onclick="COD.del('${id}')">Delete company</button>
+        </div>
+      </div>
+      <div class="sec-title">Linked Contacts (${linked.length})</div>
+      <div class="ci-card">
+        ${linked.length?linked.map(c=>`<div class="ci-row" style="cursor:pointer" onclick="R.go('detail','${c.id}')">
+          <span class="ci-lbl" style="width:auto;flex:1;font-weight:600;color:var(--text)">${x(c.name)}</span>
+          <span style="font-size:13px;color:var(--text2)">${x(c.jobTitle||'')}</span>
+        </div>`).join(''):`<div class="ci-row" style="color:var(--muted);font-size:13px">No linked contacts</div>`}
+        <div style="display:flex;gap:8px;padding:10px 0 2px">
+          <button class="btn btn-outline btn-sm" onclick="COD.openLinkContact('${id}')">Link existing</button>
+          <button class="btn btn-outline btn-sm" onclick="COD.createContact('${id}')">Create new contact</button>
+        </div>
+      </div>
+      <div class="sec-title">Call History (${ints.length})</div>
+      <div class="log-card">
+        ${ints.length?ints.map(i=>this._intEntry(i)).join(''):'<div class="int-entry" style="color:var(--muted);font-size:13px">No calls logged yet.</div>'}
+      </div>
+    `;
+  },
+
+  _intEntry(i) {
+    const lbl={
+      'no-answer':'📵 No Answer','voicemail':'📬 Voicemail Left',
+      'gatekeeper':'🛡 Gatekeeper','decision-maker-no-interest':'🤝 DM – No Interest',
+      'decision-maker-interested':'🤝 DM – Interested!'
+    };
+    return `<div class="int-entry">
+      <div class="int-e-hdr">
+        <span class="int-chip">${lbl[i.outcome]||i.outcome||'Call'}</span>
+        <span class="int-date">${relDate(i.timestamp)}</span>
+        <span class="int-by">${x(i.createdBy||'')}</span>
+        ${i.nextFollowUp?`<span style="font-size:11px;color:var(--gold);font-weight:600">→ ${fmtDisp(i.nextFollowUp)}</span>`:''}
+      </div>
+      ${i.notes?`<div style="font-size:13px;color:var(--text2);margin-top:4px">${x(i.notes)}</div>`:''}
+      ${i.dmName?`<div style="font-size:13px;color:var(--text2);margin-top:2px">DM: ${x(i.dmName)}</div>`:''}
+    </div>`;
+  },
+
+  setStage(id, stage) {
+    DB.updateCo(id, {stage});
+    this.render(id);
+    toast('Stage updated');
+  },
+
+  markCapSent(id) {
+    DB.updateCo(id, {capabilityStatementSent:true, capabilityStatementSentAt:new Date().toISOString()});
+    this.render(id);
+    toast('Capability statement marked as sent');
+  },
+
+  del(id) {
+    if (!confirm('Delete this company? This cannot be undone.')) return;
+    DB.deleteCo(id);
+    R.go('companies');
+    toast('Company deleted');
+  },
+
+  openLinkContact(coId) {
+    CALL._coId = coId;
+    const list = document.getElementById('link-co-list');
+    if (list) this._renderLinkList(coId, '');
+    document.getElementById('link-co-search').value='';
+    M.open('mo-linkco');
+  },
+
+  filterLinkSearch() {
+    const q=(document.getElementById('link-co-search').value||'').toLowerCase();
+    this._renderLinkList(CALL._coId, q);
+  },
+
+  _renderLinkList(coId, q) {
+    const co=DB.getCo(coId); if(!co) return;
+    let cs=DB.all();
+    if(q) cs=cs.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.company||'').toLowerCase().includes(q));
+    const list=document.getElementById('link-co-list');
+    if(!list) return;
+    list.innerHTML=cs.map(c=>{
+      const linked=(co.linkedContactIds||[]).includes(c.id);
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bg)">
+        <div><div style="font-weight:600;font-size:14px">${x(c.name)}</div><div style="font-size:12px;color:var(--text2)">${x(c.jobTitle||'')} · ${x(c.company||'')}</div></div>
+        <button class="btn btn-sm ${linked?'btn-outline':'btn-primary'}" onclick="COD.toggleLink('${coId}','${c.id}')">${linked?'Unlink':'Link'}</button>
+      </div>`;
+    }).join('')||'<div style="color:var(--muted);padding:10px;font-size:13px">No contacts found</div>';
+  },
+
+  toggleLink(coId, cid) {
+    const co=DB.getCo(coId); if(!co) return;
+    const ids=co.linkedContactIds||[];
+    const idx=ids.indexOf(cid);
+    if(idx>=0) ids.splice(idx,1); else ids.push(cid);
+    DB.updateCo(coId,{linkedContactIds:ids});
+    this._renderLinkList(coId,(document.getElementById('link-co-search').value||'').toLowerCase());
+    this.render(coId);
+  },
+
+  createContact(coId) {
+    const co=DB.getCo(coId); if(!co) return;
+    M.close('mo-linkco');
+    M.openAdd();
+    setTimeout(()=>{
+      document.getElementById('ac-co').value=co.name||'';
+      document.getElementById('ac-source').value=co.source&&document.querySelector('#ac-source option[value="'+co.source+'"]')?co.source:'';
+      document.getElementById('ac-loc').value=co.suburb||'';
+      M.toggleSourceOther();
+      // store coId so after save we link bidirectionally
+      M._pendingCoLink = coId;
+    },50);
+  }
+};
+
+/* ============================================================
+   SECTION: CALL OUTCOME FLOW (CALL)
+   ============================================================ */
+const CALL = {
+  _coId: null,
+  _outcome: null,
+  _dmSub: null,
+
+  open(coId) {
+    this._coId = coId;
+    this._outcome = null;
+    this._dmSub = null;
+    const co = DB.getCo(coId);
+    if (!co) return;
+    const nm = document.getElementById('co-call-cname');
+    if (nm) nm.textContent = co.name;
+    document.getElementById('co-call-cue').style.display='none';
+    document.getElementById('co-call-fields').style.display='none';
+    document.getElementById('co-call-alert').style.display='none';
+    document.getElementById('co-call-foot').style.display='none';
+    ['co-out-no-answer','co-out-voicemail','co-out-gatekeeper','co-out-decision-maker'].forEach(id=>{
+      const b=document.getElementById(id); if(b) b.classList.remove('on');
+    });
+    document.getElementById('co-outcome-grid').style.display='grid';
+    M.open('mo-callco');
+  },
+
+  selectOutcome(out) {
+    this._outcome = out;
+    this._dmSub = null;
+    ['co-out-no-answer','co-out-voicemail','co-out-gatekeeper','co-out-decision-maker'].forEach(id=>{
+      document.getElementById(id).classList.remove('on');
+    });
+    document.getElementById('co-out-'+out).classList.add('on');
+    this._showCue(out);
+  },
+
+  _showCue(out) {
+    const co = DB.getCo(this._coId);
+    const cueEl = document.getElementById('co-call-cue');
+    const fieldsEl = document.getElementById('co-call-fields');
+    const alertEl = document.getElementById('co-call-alert');
+    const footEl = document.getElementById('co-call-foot');
+    cueEl.style.display='block';
+    fieldsEl.style.display='block';
+    footEl.style.display='flex';
+    alertEl.style.display='none';
+
+    if (out === 'no-answer') {
+      const attempts = (co.callAttempts||0) + 1;
+      const window = nextCallWindow();
+      let alertHtml = '';
+      if (attempts >= 3 && (co.voicemailCount||0) === 0) {
+        alertHtml = `<div class="cap-banner" style="margin:12px 0 0"><span style="font-size:20px">💬</span><p>3 no answers with no voicemail — send a text instead?</p><button class="btn btn-gold btn-sm" onclick="CALL._switchToText()">Confirm</button></div>`;
+      }
+      cueEl.innerHTML = `<div class="cue-card">
+        <h5>What happened</h5><p>No answer. No voicemail left.</p>
+        <h5>What to do next</h5><p>Call back in 2–3 business days at the same time of day. On the third no answer, try a different time of day. After 3 no answers with no voicemail, send a text instead.</p>
+        <div class="cue-when">📅 Next calling window: ${window}</div>
+      </div>${alertHtml}`;
+      fieldsEl.innerHTML = `<div class="fg mt12"><label>Notes (optional)</label><input type="text" id="cc-notes" placeholder="Any additional notes"></div>`;
+    }
+
+    else if (out === 'voicemail') {
+      const vmCount = (co.voicemailCount||0) + 1;
+      const nextDate = fmtDisp(fmtISO(bizDays(new Date(),5)));
+      let alert2 = '';
+      if (vmCount >= 2) {
+        alert2 = `<div class="cap-banner" style="margin:12px 0 0"><span style="font-size:20px">💬</span><p>2nd voicemail — send a text next business day instead of calling.</p></div>`;
+      }
+      cueEl.innerHTML = `<div class="cue-card">
+        <h5>What happened</h5><p>Voicemail left.</p>
+        <h5>What to do next</h5><p>Call back in 5 business days. If this is the second voicemail with no response, do not leave a third — send a text the next business day instead. If text gets no response in 3 business days, park for 30 days.</p>
+        <div class="cue-when">📅 Next call: ${nextDate}</div>
+      </div>${alert2}`;
+      fieldsEl.innerHTML = `<div class="fg mt12"><label>Notes (optional)</label><input type="text" id="cc-notes" placeholder="Any additional notes"></div>`;
+    }
+
+    else if (out === 'gatekeeper') {
+      const nextDate = fmtDisp(fmtISO(bizDays(new Date(),1)));
+      cueEl.innerHTML = `<div class="cue-card">
+        <h5>What happened</h5><p>Reached a receptionist or gatekeeper. Did not speak to the decision maker.</p>
+        <h5>What to do next</h5><p>Get a name before hanging up. Ask who handles labour hire or subcontractor relationships. Do not leave a message. Call back next business day and ask for that person directly.</p>
+        <div class="cue-when">📅 Next call: ${nextDate}</div>
+      </div>`;
+      fieldsEl.innerHTML = `<div class="fg mt12"><label>Decision Maker Name *</label><input type="text" id="cc-dm-name" placeholder="Name of the person to ask for"></div>
+        <div class="fg"><label>Direct number / extension (optional)</label><input type="text" id="cc-dm-ext" placeholder="e.g. ext. 204"></div>
+        <div class="fg"><label>Notes (optional)</label><input type="text" id="cc-notes" placeholder="Any additional notes"></div>`;
+    }
+
+    else if (out === 'decision-maker') {
+      cueEl.innerHTML = `<div class="cue-card" style="margin-bottom:0">
+        <h5>What was their response?</h5>
+        <div class="dm-sub" id="dm-sub-btns">
+          <button class="dm-sub-btn" id="dm-sub-no" onclick="CALL.selectDMSub('no-interest')">No expressed<br>interest</button>
+          <button class="dm-sub-btn" id="dm-sub-yes" onclick="CALL.selectDMSub('interested')">Expressed<br>interest ⭐</button>
+        </div>
+        <div id="dm-detail-cue"></div>
+      </div>`;
+      fieldsEl.innerHTML = `<div class="fg mt12" id="dm-fields-wrap" style="display:none">
+        <div class="fg"><label>Decision Maker Name</label><input type="text" id="cc-dm-name" placeholder="Name (if not already linked)"></div>
+        <div class="fg"><label>Notes</label><textarea id="cc-notes" placeholder="Key points from the call…" style="min-height:60px"></textarea></div>
+        <div id="dm-timing-btns"></div>
+      </div>`;
+      footEl.style.display='none';
+    }
+  },
+
+  selectDMSub(sub) {
+    this._dmSub = sub;
+    ['dm-sub-no','dm-sub-yes'].forEach(id=>{ const b=document.getElementById(id); if(b) b.classList.remove('on'); });
+    document.getElementById(sub==='interested'?'dm-sub-yes':'dm-sub-no').classList.add('on');
+    const detailEl = document.getElementById('dm-detail-cue');
+    const fieldsWrap = document.getElementById('dm-fields-wrap');
+    const footEl = document.getElementById('co-call-foot');
+    const timingEl = document.getElementById('dm-timing-btns');
+    if (fieldsWrap) fieldsWrap.style.display='block';
+    footEl.style.display='flex';
+
+    if (sub === 'no-interest') {
+      const nextDate30 = fmtDisp(fmtISO(calDays(new Date(),30)));
+      const nextDate60 = fmtDisp(fmtISO(calDays(new Date(),60)));
+      if (detailEl) detailEl.innerHTML = `<div style="margin-top:10px"><h5>What happened</h5><p>Reached the decision maker. No current labour hire need.</p><h5>What to do next</h5><p>Thank them, ask one question about current projects, ask if you can check back when demand picks up.</p></div>`;
+      if (timingEl) timingEl.innerHTML = `<div class="fg"><label>Follow-up timing</label><div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" id="dm-fu-30" onclick="CALL._setDMTiming('check-back-30','${nextDate30}')" style="flex:1">Check back in 30 days<br><small>${nextDate30}</small></button>
+        <button class="btn btn-outline btn-sm" id="dm-fu-60" onclick="CALL._setDMTiming('park-60','${nextDate60}')" style="flex:1">Said no — park 60 days<br><small>${nextDate60}</small></button>
+      </div></div>`;
+      this._dmTiming = null;
+    }
+
+    else if (sub === 'interested') {
+      const nextBD = fmtDisp(fmtISO(bizDays(new Date(),1)));
+      if (detailEl) detailEl.innerHTML = `<div style="margin-top:10px"><h5>What happened</h5><p>Decision maker expressed interest in formwork or steel fixing labour hire.</p><h5>What to do next</h5><p>Send capability statement within 2 hours. Text to confirm it was sent. Call back next business day to confirm receipt and ask what their most pressing labour need is.</p><div class="cue-when">📅 Call back: ${nextBD}</div></div>`;
+      const alertEl = document.getElementById('co-call-alert');
+      alertEl.style.display='flex';
+      alertEl.innerHTML = '<span style="font-size:22px">📄</span><p>Send capability statement NOW. Within 2 hours.</p>';
+      this._dmTiming = 'interested';
+    }
+  },
+
+  _setDMTiming(type, label) {
+    this._dmTiming = type;
+    ['dm-fu-30','dm-fu-60'].forEach(id=>{ const b=document.getElementById(id); if(b) b.style.borderColor='var(--border)'; });
+    const active = type==='check-back-30'?'dm-fu-30':'dm-fu-60';
+    const b=document.getElementById(active); if(b) b.style.borderColor='var(--gold)';
+  },
+
+  _switchToText() {
+    toast('Next action set to text instead of call');
+    this._dmTiming = 'text';
+  },
+
+  save() {
+    const co = DB.getCo(this._coId); if (!co) return;
+    const out = this._outcome;
+    const notes = (document.getElementById('cc-notes')||{}).value || '';
+    const dmName = (document.getElementById('cc-dm-name')||{}).value || '';
+
+    if (out === 'gatekeeper' && !dmName.trim()) { toast('Decision maker name is required'); return; }
+
+    const now = new Date();
+    let nextFollowUpDate = null;
+    let newOutcomeKey = out;
+    let stageUpdate = {};
+    let capUpdate = {};
+
+    if (out === 'no-answer') {
+      newOutcomeKey = 'no-answer';
+      nextFollowUpDate = fmtISO(bizDays(now, 3));
+    } else if (out === 'voicemail') {
+      newOutcomeKey = 'voicemail';
+      const newVm = (co.voicemailCount||0) + 1;
+      nextFollowUpDate = newVm >= 2 ? fmtISO(bizDays(now,1)) : fmtISO(bizDays(now,5));
+      DB.updateCo(this._coId, {voicemailCount: newVm});
+    } else if (out === 'gatekeeper') {
+      newOutcomeKey = 'gatekeeper';
+      nextFollowUpDate = fmtISO(bizDays(now,1));
+      DB.updateCo(this._coId, {callAttempts: 0});
+    } else if (out === 'decision-maker') {
+      if (!this._dmSub) { toast('Please select a response type'); return; }
+      if (this._dmSub === 'interested') {
+        newOutcomeKey = 'decision-maker-interested';
+        nextFollowUpDate = fmtISO(bizDays(now,1));
+        stageUpdate = {stage:'engaged'};
+        capUpdate = {capabilityStatementSent: false}; // remind until marked
+      } else {
+        newOutcomeKey = 'decision-maker-no-interest';
+        if (!this._dmTiming) { toast('Please select a follow-up timing'); return; }
+        nextFollowUpDate = this._dmTiming === 'park-60' ? fmtISO(calDays(now,60)) : fmtISO(calDays(now,30));
+        if (this._dmTiming === 'park-60') stageUpdate = {stage:'parked'};
+      }
+    }
+
+    // Increment call attempts for non-gatekeeper outcomes
+    if (out !== 'gatekeeper') {
+      DB.updateCo(this._coId, {callAttempts: (co.callAttempts||0)+1});
+    }
+
+    const ix = {
+      id: crypto.randomUUID(),
+      outcome: newOutcomeKey,
+      notes,
+      dmName,
+      timestamp: now.toISOString(),
+      createdBy: sessionStorage.getItem('bb_user')||'',
+      nextFollowUp: nextFollowUpDate
+    };
+
+    const updatedCo = DB.getCo(this._coId);
+    const ints = updatedCo.interactions || [];
+    ints.unshift(ix);
+    DB.updateCo(this._coId, {
+      interactions: ints,
+      lastCallOutcome: newOutcomeKey,
+      lastInteractionAt: now.toISOString(),
+      nextFollowUp: nextFollowUpDate ? {date: nextFollowUpDate, confirmed: true} : null,
+      ...stageUpdate,
+      ...capUpdate
+    });
+
+    M.close('mo-callco');
+    COD.render(this._coId);
+    toast('Call outcome logged');
+
+    // Prompt to create contact if gatekeeper gave a name
+    if (out === 'gatekeeper' && dmName.trim()) {
+      setTimeout(()=>{
+        if (confirm('Create a contact for ' + dmName.trim() + '?')) {
+          const co2 = DB.getCo(this._coId);
+          M.openAdd();
+          setTimeout(()=>{
+            document.getElementById('ac-name').value = dmName.trim();
+            document.getElementById('ac-co').value = co2?co2.name:'';
+            document.getElementById('ac-source').value = co2&&co2.source?co2.source:'';
+            document.getElementById('ac-loc').value = co2?co2.suburb:'';
+            document.getElementById('ac-notes').value = 'Created from gatekeeper call — unverified';
+            M.toggleSourceOther();
+            M._pendingCoLink = this._coId;
+          }, 50);
+        }
+      }, 300);
+    }
+
+    // Prompt to create contact if interested DM and no linked contacts
+    if (out === 'decision-maker' && this._dmSub === 'interested') {
+      const linkedCount = (DB.getCo(this._coId)||{}).linkedContactIds?.length||0;
+      if (!linkedCount && dmName.trim()) {
+        setTimeout(()=>{
+          if (confirm('Create a contact for decision maker ' + dmName.trim() + '?')) {
+            const co2 = DB.getCo(this._coId);
+            M.openAdd();
+            setTimeout(()=>{
+              document.getElementById('ac-name').value = dmName.trim();
+              document.getElementById('ac-co').value = co2?co2.name:'';
+              document.getElementById('ac-source').value = co2&&co2.source?co2.source:'';
+              document.getElementById('ac-loc').value = co2?co2.suburb:'';
+              M.toggleSourceOther();
+              M._pendingCoLink = this._coId;
+            }, 50);
+          }
+        }, 300);
+      }
+    }
+  }
+};
+
+/* ============================================================
    SECTION: INIT
    ============================================================ */
 DB.load();
@@ -2381,7 +3112,7 @@ AUTH.init();
       </div>
 
       <!-- Option B -->
-      <div class="imp-panel" id="imp-panel-b">
+      <div class="imp-panel" id="imp-panel-b" style="display:none">
         <div class="fg">
           <label>Paste your contact list</label>
           <textarea id="imp-paste" placeholder="Paste a list of contacts in any format — names, emails, notes from another CRM, a spreadsheet copy-paste, an email signature block, etc." style="min-height:140px"></textarea>
@@ -2396,6 +3127,108 @@ AUTH.init();
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION: ADD COMPANY MODAL
+     ============================================================ -->
+<div class="mo" id="mo-addco">
+  <div class="sheet">
+    <div class="m-hdr">
+      <h3>Add Company</h3>
+      <button class="m-close" onclick="M.close('mo-addco')">×</button>
+    </div>
+    <div class="m-body">
+      <div class="fg"><label>Company Name *</label><input type="text" id="co-name" placeholder="Company name"></div>
+      <div class="fg">
+        <label>Tier *</label>
+        <div class="tier-sel" id="co-tier-sel">
+          <button class="tier-btn" onclick="COL.setTier('1')" id="co-t1">T1</button>
+          <button class="tier-btn" onclick="COL.setTier('2')" id="co-t2">T2</button>
+          <button class="tier-btn" onclick="COL.setTier('3')" id="co-t3">T3</button>
+          <button class="tier-btn" onclick="COL.setTier('4')" id="co-t4">T4</button>
+          <button class="tier-btn" onclick="COL.setTier('excluded')" id="co-texcl">Excl</button>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Source</label>
+        <select id="co-source" onchange="COL.toggleCoSourceOther()">
+          <option value="">— select —</option>
+          <option value="ccf-victoria-directory">CCF Victoria Directory</option>
+          <option value="master-builders-victoria">Master Builders Victoria</option>
+          <option value="sourceable">Sourceable</option>
+          <option value="major-projects-victoria">Major Projects Victoria</option>
+          <option value="wyndham-council">Wyndham Council</option>
+          <option value="casey-council">Casey Council</option>
+          <option value="melton-council">Melton Council</option>
+          <option value="warm-referral">Warm Referral</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="fg" id="co-source-other-wrap" style="display:none">
+        <label>Specify source</label>
+        <input type="text" id="co-source-other" placeholder="Describe the source">
+      </div>
+      <div class="fg"><label>Suburb / Region</label><input type="text" id="co-suburb" placeholder="e.g. Werribee, Western Metro"></div>
+      <div class="fg"><label>Primary Trade / Service</label><input type="text" id="co-trade" placeholder="e.g. Formwork, Steel Fixing"></div>
+      <div class="fg"><label>Notes</label><textarea id="co-notes" placeholder="Initial notes…"></textarea></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-outline" style="flex:1" onclick="M.close('mo-addco')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="COL.saveCompany()">Save Company</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION: CALL OUTCOME MODAL
+     ============================================================ -->
+<div class="mo" id="mo-callco">
+  <div class="sheet">
+    <div class="m-hdr">
+      <div>
+        <h3>Log Call Outcome</h3>
+        <div id="co-call-cname" style="font-size:13px;color:var(--text2);margin-top:2px"></div>
+      </div>
+      <button class="m-close" onclick="M.close('mo-callco')">×</button>
+    </div>
+    <div class="m-body">
+      <div class="fg">
+        <label>What happened?</label>
+        <div class="outcome-grid" id="co-outcome-grid">
+          <button class="outcome-btn" onclick="CALL.selectOutcome('no-answer')" id="co-out-no-answer">📵<br>No Answer</button>
+          <button class="outcome-btn" onclick="CALL.selectOutcome('voicemail')" id="co-out-voicemail">📬<br>Voicemail Left</button>
+          <button class="outcome-btn" onclick="CALL.selectOutcome('gatekeeper')" id="co-out-gatekeeper">🛡<br>Spoke to Gatekeeper</button>
+          <button class="outcome-btn" onclick="CALL.selectOutcome('decision-maker')" id="co-out-decision-maker">🤝<br>Spoke to Decision Maker</button>
+        </div>
+      </div>
+      <div id="co-call-cue" style="display:none"></div>
+      <div id="co-call-fields" style="display:none"></div>
+      <div id="co-call-alert" style="display:none" class="cap-banner" style="margin:12px 0 0"></div>
+    </div>
+    <div class="m-foot" id="co-call-foot" style="display:none">
+      <button class="btn btn-outline" style="flex:1" onclick="M.close('mo-callco')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" id="co-call-save-btn" onclick="CALL.save()">Log Outcome</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION: LINK CONTACT MODAL
+     ============================================================ -->
+<div class="mo" id="mo-linkco">
+  <div class="sheet">
+    <div class="m-hdr">
+      <h3>Link Contact</h3>
+      <button class="m-close" onclick="M.close('mo-linkco')">×</button>
+    </div>
+    <div class="m-body">
+      <div class="fg">
+        <input type="search" class="search-in" id="link-co-search" placeholder="Search contacts…" oninput="COD.filterLinkSearch()" style="padding-left:14px">
+      </div>
+      <div id="link-co-list" style="max-height:300px;overflow-y:auto"></div>
     </div>
   </div>
 </div>
