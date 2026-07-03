@@ -479,6 +479,30 @@ a{color:var(--gold);text-decoration:none}
     <!-- DASHBOARD -->
     <div class="screen on" id="s-dash">
       <div class="sh"><h2>Dashboard</h2><p id="dash-date"></p></div>
+      <div id="dash-od-row" style="display:flex;align-items:center;gap:8px;padding:0 16px 10px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">Outreach days</span>
+        <div id="dash-od-chips" style="display:flex;gap:5px"></div>
+      </div>
+
+      <div class="dash-group-hdr" style="border-top:none;margin-top:0">Today's Scoreboard</div>
+      <div style="padding:0 16px 4px">
+        <div style="background:var(--card);border-radius:var(--r);padding:16px;box-shadow:var(--sh)">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:10px">
+            <div>
+              <div id="dash-calls-num" style="font-size:40px;font-weight:700;line-height:1;color:var(--green)">0</div>
+              <div style="font-size:13px;color:var(--text2);margin-top:2px">Calls today</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:13px;font-weight:600;color:var(--muted)">Target: 16–20</div>
+            </div>
+          </div>
+          <div style="height:8px;background:var(--bg);border-radius:4px;overflow:hidden">
+            <div id="dash-calls-bar" style="height:100%;background:var(--green);border-radius:4px;width:0%;transition:width .4s"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sec-title" style="padding-top:12px">Warm touches due today</div>
+      <div class="fu-list" id="fu-warm-today"></div>
 
       <div class="sec-title">Pipeline Summary</div>
       <div class="pipe-grid" id="pipe-grid"></div>
@@ -564,6 +588,12 @@ a{color:var(--gold);text-decoration:none}
         </div>
         <button class="btn btn-primary" onclick="ST.saveKey()">Save API Key</button>
         <p class="t-muted mt8">Used for AI summaries. Stored locally in your browser.</p>
+      </div>
+
+      <div class="set-sec">
+        <h3>Outreach Days</h3>
+        <p class="t-muted" style="font-size:13px;margin-bottom:14px">Toggle which weekdays you make outbound calls. Affects follow-up date calculations.</p>
+        <div id="od-btns" style="display:flex;gap:8px;flex-wrap:wrap"></div>
       </div>
 
       <div class="set-sec">
@@ -970,13 +1000,22 @@ const VIC_PH = new Set([
   '2026-12-28', // Boxing Day substitute (26 Dec is Saturday, 27 Dec is Sunday)
 ]);
 
+function getOutreachDays() {
+  try { return JSON.parse(localStorage.getItem('bb_outreach_days')||'null') || {mon:true,tue:true,wed:true,thu:true,fri:true}; }
+  catch(e) { return {mon:true,tue:true,wed:true,thu:true,fri:true}; }
+}
+
 function bizDays(date, n) {
+  const od = getOutreachDays();
+  const odMap = [null,'sun','mon','tue','wed','thu','fri','sat']; // index 0 unused, 1=Sun
+  // JS: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+  const jsOdMap = {1:od.mon,2:od.tue,3:od.wed,4:od.thu,5:od.fri};
   const d = new Date(date);
   let added = 0;
   while (added < n) {
     d.setDate(d.getDate() + 1);
     const w = d.getDay();
-    if (w !== 0 && w !== 6 && !VIC_PH.has(fmtISO(d))) added++;
+    if (w !== 0 && w !== 6 && !VIC_PH.has(fmtISO(d)) && jsOdMap[w]) added++;
   }
   return d;
 }
@@ -1004,6 +1043,18 @@ function fmtDisp(s) {
 }
 
 function today() { return fmtISO(new Date()); }
+
+function _callingWindow(dateStr) {
+  if (!dateStr) return '';
+  const td = today();
+  const now = new Date();
+  const h = now.getHours() + now.getMinutes()/60;
+  if (dateStr === td) {
+    return h < 14 ? 'Today — call between 11am and 2pm' : 'Tomorrow — call between 7:30am and 9am';
+  }
+  const dayName = new Date(dateStr+'T00:00:00').toLocaleDateString('en-US',{weekday:'long'});
+  return dayName + ' — call between 7:30am and 9am';
+}
 
 function relDate(ts) {
   if (!ts) return '';
@@ -1204,9 +1255,43 @@ const DASH = {
     document.getElementById('dash-date').textContent =
       d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
 
+    // Outreach day chips
+    OD.renderDashChips();
+
     const cs = DB.all();
     cs.forEach(c => { c.heatScore = calcHeat(c); });
     DB.save();
+
+    // Scoreboard — calls today (contacts + companies)
+    const td = today();
+    const CALL_TYPES = new Set(['call-answered','call-no-answer','voicemail-left']);
+    let callsToday = 0;
+    cs.forEach(c=>{
+      (c.interactions||[]).forEach(i=>{ if(i.timestamp&&i.timestamp.startsWith(td)&&CALL_TYPES.has(i.interactionType)) callsToday++; });
+    });
+    DB.allCo().forEach(co=>{
+      (co.interactions||[]).forEach(i=>{ if(i.timestamp&&i.timestamp.startsWith(td)&&(i.outcome==='no-answer'||i.outcome==='voicemail')) callsToday++; });
+    });
+    const callsEl = document.getElementById('dash-calls-num');
+    if (callsEl) { callsEl.textContent=callsToday; callsEl.style.color=callsToday>=16?'var(--green)':'#E07B00'; }
+    const barEl = document.getElementById('dash-calls-bar');
+    if (barEl) barEl.style.width=Math.min(100,Math.round(callsToday/20*100))+'%';
+
+    // Warm touches due today
+    const warmMethods = new Set(['email','text','linkedin']);
+    const warmToday = cs.filter(c=>{
+      const fu=c.nextFollowUp; return fu&&fu.confirmed&&fu.date===td&&warmMethods.has(fu.method);
+    });
+    const wEl = document.getElementById('fu-warm-today');
+    if (wEl) {
+      if (!warmToday.length) { wEl.innerHTML='<div class="empty">No warm touches due today</div>'; }
+      else wEl.innerHTML = warmToday.map(c=>`<div class="fu-card" onclick="R.go('detail','${c.id}')">
+        <div class="dot ${band(c.heatScore||5)}"></div>
+        <div class="fu-info"><div class="fu-name">${x(c.name)}</div><div class="fu-co">${x(c.company)}</div>
+        <div class="fu-meta">${c.nextFollowUp.method} · ${fmtDisp(c.nextFollowUp.date)}</div></div>
+        <div class="hs" style="color:${hcol(c.heatScore||5)}">${c.heatScore||5}</div>
+      </div>`).join('');
+    }
 
     // Pipeline
     const cnt = {};
@@ -1217,7 +1302,6 @@ const DASH = {
     pg.innerHTML = `<div class="stat"><div class="stat-val">${cs.length}</div><div class="stat-lbl">Total</div></div>`
       + STAGES.map(s=>`<div class="stat"><div class="stat-val">${cnt[s]}</div><div class="stat-lbl">${STAGE_LBL[s]}</div></div>`).join('');
 
-    const td = today();
     const wkEnd = fmtISO(calDays(new Date(),7));
     const ap = cs.filter(c=>(c.contactMode||'active-prospect')==='active-prospect');
     const rb = cs.filter(c=>c.contactMode==='relationship-builder');
@@ -1880,7 +1964,9 @@ const M = {
       const fuLbl = document.getElementById('fu-sug-lbl');
       if (fuLbl) fuLbl.textContent = sug.isCheckIn ? 'Suggested Check-in' : 'Suggested Next Follow-up';
       const methLabel = sug.method === 'text' ? 'Text message' : sug.method;
-      document.getElementById('fu-sug-txt').textContent = fmtDisp(sug.date)+' · '+methLabel;
+      const callWin = _callingWindow(sug.date);
+      document.getElementById('fu-sug-txt').innerHTML = x(fmtDisp(sug.date)+' · '+methLabel)
+        +(callWin?`<br><span style="font-size:12px;color:var(--gold);font-weight:600">${x(callWin)}</span>`:'');
       document.getElementById('fu-date').value = sug.date;
       document.getElementById('fu-meth').value = sug.method;
       document.getElementById('fu-sug-wrap').style.display='block';
@@ -2118,12 +2204,41 @@ const PASSWD = {
 /* ============================================================
    SECTION: SETTINGS
    ============================================================ */
+const OD = {
+  _days: ['mon','tue','wed','thu','fri'],
+  _labels: {mon:'Mon',tue:'Tue',wed:'Wed',thu:'Thu',fri:'Fri'},
+
+  load() { return getOutreachDays(); },
+
+  save(od) { localStorage.setItem('bb_outreach_days', JSON.stringify(od)); },
+
+  toggle(day) {
+    const od = this.load();
+    od[day] = !od[day];
+    this.save(od);
+    this.renderSettings();
+  },
+
+  renderSettings() {
+    const el = document.getElementById('od-btns'); if (!el) return;
+    const od = this.load();
+    el.innerHTML = this._days.map(d=>`<button onclick="OD.toggle('${d}')" style="padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1.5px solid ${od[d]?'var(--green)':'var(--border)'};background:${od[d]?'rgba(27,77,46,0.1)':'var(--bg)'};color:${od[d]?'var(--green)':'var(--muted)'}">${this._labels[d]} <span style="font-size:11px">${od[d]?'On':'Off'}</span></button>`).join('');
+  },
+
+  renderDashChips() {
+    const el = document.getElementById('dash-od-chips'); if (!el) return;
+    const od = this.load();
+    el.innerHTML = this._days.map(d=>`<span style="padding:3px 9px;border-radius:12px;font-size:12px;font-weight:600;background:${od[d]?'rgba(27,77,46,0.12)':'var(--bg)'};color:${od[d]?'var(--green)':'var(--muted)'};border:1px solid ${od[d]?'rgba(27,77,46,0.25)':'var(--border)'}">${this._labels[d]}</span>`).join('');
+  }
+};
+
 const ST = {
   init() {
     document.getElementById('api-key').value = DB.getKey();
     document.getElementById('set-user').textContent = AUTH.user;
     document.getElementById('st-dispname').value = AUTH.user || '';
     ['st-curpw','st-newpw','st-confpw'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+    OD.renderSettings();
   },
 
   toggleKey() {
