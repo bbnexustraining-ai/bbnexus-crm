@@ -85,6 +85,21 @@ a{color:var(--gold);text-decoration:none}
 .hdr-right{display:flex;align-items:center;gap:10px}
 .hdr-user{color:var(--gold-light);font-size:13px;font-weight:600}
 .btn-logout{background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.sb-search-btn{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.25);padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:10px;width:100%}
+.srch-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;align-items:flex-start;justify-content:center;padding:60px 16px 0}
+.srch-overlay.on{display:flex}
+.srch-box{background:var(--card);border-radius:var(--r);width:100%;max-width:560px;box-shadow:0 8px 32px rgba(0,0,0,0.3);overflow:hidden}
+.srch-inp-row{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.srch-inp{flex:1;border:none;background:transparent;font-size:16px;color:var(--text);outline:none}
+.srch-close{background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;padding:0 4px;line-height:1}
+.srch-results{max-height:60vh;overflow-y:auto;padding:8px 0}
+.srch-sec-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);padding:10px 16px 4px}
+.srch-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--border)}
+.srch-row:last-child{border-bottom:none}
+.srch-row:hover{background:var(--bg)}
+.srch-row-name{font-size:14px;font-weight:600;color:var(--text)}
+.srch-row-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.srch-empty{padding:20px 16px;font-size:14px;color:var(--muted);text-align:center}
 .app-body{flex:1;display:flex;overflow:hidden}
 .screens{flex:1;overflow:hidden;position:relative}
 
@@ -469,6 +484,10 @@ a{color:var(--gold);text-decoration:none}
       </button>
     </nav>
     <div class="sb-foot">
+      <button class="sb-search-btn" onclick="SRCH.open()" title="Search">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/></svg>
+        Search
+      </button>
       <div class="sb-user" id="sb-user"></div>
       <button class="btn-logout" onclick="AUTH.logout()">Logout</button>
     </div>
@@ -659,6 +678,10 @@ a{color:var(--gold);text-decoration:none}
     <button class="tab" id="tab-settings" onclick="R.go('settings')">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3"/></svg>
       Settings
+    </button>
+    <button class="tab" onclick="SRCH.open()">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/></svg>
+      Search
     </button>
   </div>
 
@@ -2160,6 +2183,52 @@ ${ixSummary||'None logged'}`;
     return data.content[0].text;
   },
 
+  async refreshCoSummary(id) {
+    const key = DB.getKey();
+    if (!key) { toast('Add API key in Settings'); return; }
+    const co = DB.getCo(id);
+    if (!co) return;
+    const btn = document.getElementById('co-ai-ref-btn');
+    const content = document.getElementById('co-ai-content');
+    if (btn) btn.innerHTML = '<span class="spinner"></span>';
+    const ixSummary = (co.interactions||[]).slice(0,10).map(i=>
+      `${i.outcome||'call'} on ${(i.timestamp||'').split('T')[0]}: ${i.notes||''}`
+    ).join('\n');
+    const msg = `Company: ${co.name}
+Tier: ${CO_TIER_LBL[co.tier]||co.tier} | Source: ${co.source||'unknown'} | Suburb: ${co.suburb||'unknown'}
+Primary Trade: ${co.primaryTrade||'unknown'} | Stage: ${co.stage||'new'} | Heat: ${(co.heatScore||5)}/10
+Notes: ${co.notes||'none'}
+
+Interactions (newest first):
+${ixSummary||'None logged'}`;
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 300,
+          system: 'You are a sharp BD analyst for a construction labour hire firm. Write a single concise paragraph covering: where this company relationship stands, what their likely labour hire need is, what the next best move is, and how hot this lead is. Be direct and actionable. No filler.',
+          messages: [{role: 'user', content: msg}]
+        })
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message||'API error'); }
+      const data = await res.json();
+      const sum = data.content[0].text;
+      DB.updateCo(id, {aiSummary: sum});
+      if (content) { const formatted = sum.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').split('\n\n').map(p=>'<p style="margin-bottom:10px;line-height:1.7;font-size:13px;color:rgba(255,255,255,0.9)">'+p.replace(/\n/g,'<br>')+'</p>').join(''); content.innerHTML = formatted; }
+      if (btn) btn.textContent = 'Refresh';
+    } catch(e) {
+      if (btn) btn.textContent = 'Refresh';
+      if (content) content.innerHTML = `<p class="ai-ph">Error: ${x(e.message)}</p>`;
+    }
+  },
+
   async refreshCS(id) {
     console.log('[AI.refreshCS] called for id:', id);
     const key=DB.getKey(); if(!key){toast('Add API key in Settings');return;}
@@ -2386,6 +2455,76 @@ const ST = {
       e.target.value='';
     };
     reader.readAsText(file);
+  }
+};
+
+/* ============================================================
+   SECTION: GLOBAL SEARCH
+   ============================================================ */
+const SRCH = {
+  open() {
+    document.getElementById('srch-overlay').classList.add('on');
+    const inp = document.getElementById('srch-inp');
+    if (inp) { inp.value = ''; setTimeout(()=>inp.focus(), 80); }
+    document.getElementById('srch-results').innerHTML = '<div class="srch-empty">Start typing to search…</div>';
+    document.addEventListener('keydown', this._onKey);
+  },
+  close() {
+    document.getElementById('srch-overlay').classList.remove('on');
+    document.removeEventListener('keydown', this._onKey);
+  },
+  _onKey(e) { if (e.key === 'Escape') SRCH.close(); },
+  onOverlayClick(e) { if (e.target === document.getElementById('srch-overlay')) this.close(); },
+  search(q) {
+    const el = document.getElementById('srch-results');
+    if (!q || q.length < 2) { el.innerHTML = '<div class="srch-empty">Start typing to search…</div>'; return; }
+    const lq = q.toLowerCase();
+    const contacts = DB.all().filter(c =>
+      (c.name||'').toLowerCase().includes(lq) || (c.company||'').toLowerCase().includes(lq)
+    ).slice(0, 5);
+    const companies = DB.allCo().filter(co =>
+      (co.name||'').toLowerCase().includes(lq) ||
+      (co.suburb||'').toLowerCase().includes(lq) ||
+      (co.primaryTrade||'').toLowerCase().includes(lq)
+    ).slice(0, 5);
+    if (!contacts.length && !companies.length) { el.innerHTML = '<div class="srch-empty">No results found</div>'; return; }
+    let html = '';
+    if (contacts.length) {
+      html += '<div class="srch-sec-hdr">Contacts</div>';
+      html += contacts.map(c => {
+        const sc = c.heatScore||5;
+        return `<div class="srch-row" onclick="SRCH.go('detail','${c.id}')">
+          <div>
+            <div class="srch-row-name">${x(c.name)}</div>
+            <div class="srch-row-sub">${x(c.company||'')}${c.jobTitle?' · '+x(c.jobTitle):''}</div>
+          </div>
+          <div class="hs" style="font-size:13px"><div class="dot ${band(sc)}" style="width:10px;height:10px"></div>${sc}</div>
+        </div>`;
+      }).join('');
+    }
+    if (companies.length) {
+      html += '<div class="srch-sec-hdr">Companies</div>';
+      html += companies.map(co => {
+        const sc = co.heatScore||5;
+        const tierCls = CO_TIER_CLASS[co.tier]||'b-t4';
+        const tierLbl = CO_TIER_LBL[co.tier]||co.tier||'';
+        return `<div class="srch-row" onclick="SRCH.go('company-detail','${co.id}')">
+          <div>
+            <div class="srch-row-name">${x(co.name)}</div>
+            <div class="srch-row-sub">${x(co.suburb||'')}${co.primaryTrade?' · '+x(co.primaryTrade):''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="badge ${tierCls}" style="font-size:10px">${x(tierLbl)}</span>
+            <div class="hs" style="font-size:13px"><div class="dot ${band(sc)}" style="width:10px;height:10px"></div>${sc}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+    el.innerHTML = html;
+  },
+  go(screen, id) {
+    this.close();
+    R.go(screen, id);
   }
 };
 
@@ -2776,6 +2915,7 @@ const COL = {
       linkedContactIds: [],
       interactions: [],
       nextFollowUp: null,
+      aiSummary: '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -2827,12 +2967,25 @@ const COD = {
       ? `<div class="ci-row"><span class="ci-lbl">Next call</span><div><span style="font-weight:600;color:var(--green)">${fmtDisp(coNfu.date)}</span>${coNfuWin?`<div style="font-size:12px;color:#8B7335;margin-top:4px">${coNfuWin}</div>`:''}</div></div>`
       : '';
 
+    const hasKey = !!DB.getKey();
+    const coAiContent = !hasKey
+      ? `<p class="ai-ph">Add your Anthropic API key in <a onclick="R.go('settings')" style="cursor:pointer;color:var(--gold-light)">Settings</a> to use AI summaries.</p>`
+      : co.aiSummary
+        ? (() => { const f=co.aiSummary.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').split('\n\n').map(p=>'<p style="margin-bottom:10px;line-height:1.7;font-size:13px;color:rgba(255,255,255,0.9)">'+p.replace(/\n/g,'<br>')+'</p>').join(''); return f; })()
+        : `<p class="ai-ph">No summary yet. Tap Refresh to generate one.</p>`;
+
     el.innerHTML = `
       <div class="back-btn" onclick="R.go('companies')">
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Companies
       </div>
       ${co.capabilityStatementSent===false && co.stage==='engaged'?`<div class="cap-banner"><span style="font-size:24px">📄</span><p>Send capability statement NOW. Within 2 hours.</p><button class="btn btn-gold btn-sm" onclick="COD.markCapSent('${id}')">Mark Sent</button></div>`:''}
+      <div class="ai-card">
+        <h4>AI Summary
+          <button class="btn-ref" onclick="AI.refreshCoSummary('${id}')" id="co-ai-ref-btn">Refresh</button>
+        </h4>
+        <div id="co-ai-content">${coAiContent}</div>
+      </div>
       <div class="ci-card">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px">
           <div>
@@ -3425,6 +3578,19 @@ AUTH.init();
         <input type="search" class="search-in" id="link-co-search" placeholder="Search contacts…" oninput="COD.filterLinkSearch()" style="padding-left:14px">
       </div>
       <div id="link-co-list" style="max-height:300px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
+<div class="srch-overlay" id="srch-overlay" onclick="SRCH.onOverlayClick(event)">
+  <div class="srch-box">
+    <div class="srch-inp-row">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18" style="flex-shrink:0;color:var(--muted)"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/></svg>
+      <input class="srch-inp" id="srch-inp" placeholder="Search contacts and companies…" oninput="SRCH.search(this.value)" autocomplete="off" spellcheck="false">
+      <button class="srch-close" onclick="SRCH.close()">×</button>
+    </div>
+    <div class="srch-results" id="srch-results">
+      <div class="srch-empty">Start typing to search…</div>
     </div>
   </div>
 </div>
