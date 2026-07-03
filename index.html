@@ -1507,10 +1507,21 @@ const DET = {
     ].filter(r=>r[1]);
 
     const nfu = c.nextFollowUp;
-    const _nfuWin = (nfu&&nfu.date&&nfu.method==='call') ? _callingWindow(nfu.date) : '';
+    let _nfuWin = '';
+    if (nfu && nfu.date && nfu.method === 'call') {
+      const nfuDate = nfu.date;
+      const isToday = nfuDate === today();
+      const hrs = new Date().getHours();
+      if (isToday && hrs < 14) _nfuWin = 'Call between 11am – 2pm today';
+      else if (isToday && hrs >= 14) _nfuWin = 'Call between 7:30am – 9am tomorrow';
+      else {
+        const dayName = new Date(nfuDate + 'T00:00:00').toLocaleDateString('en-AU', {weekday:'long'});
+        _nfuWin = dayName + ' — call between 7:30am – 9am';
+      }
+    }
     const nfuHTML = nfu && nfu.confirmed && nfu.date
       ? `<div class="nfu-conf">
-          <div style="flex:1"><div class="nfu-date">${fmtDisp(nfu.date)}</div><div class="nfu-meth">${nfu.method}${_nfuWin?`<br><span style="font-size:12px;color:#8B7335;font-weight:600">${_nfuWin}</span>`:''}</div></div>
+          <div style="flex:1"><div class="nfu-date">${fmtDisp(nfu.date)}</div><div class="nfu-meth">${nfu.method}</div>${_nfuWin?`<div style="font-size:12px;color:#8B7335;margin-top:4px">${_nfuWin}</div>`:''}</div>
           <button class="btn btn-outline btn-sm" onclick="DET.recalcFU('${id}')" style="margin-right:4px">Recalculate</button>
           <button class="btn btn-outline btn-sm" onclick="DET.clearFU('${id}')">Clear</button>
         </div>`
@@ -2731,9 +2742,20 @@ const COD = {
     const ints = (co.interactions||[]);
     const stageOpts = STAGES.map(s=>`<button class="stage-opt${co.stage===s?' on':''}" onclick="COD.setStage('${id}','${s}')">${STAGE_LBL[s]}</button>`).join('');
     const coNfu = co.nextFollowUp;
-    const coNfuWin = (coNfu&&coNfu.date&&coNfu.method==='call') ? _callingWindow(coNfu.date) : '';
+    let coNfuWin = '';
+    if (coNfu && coNfu.date && coNfu.method === 'call') {
+      const nfuDate = coNfu.date;
+      const isToday = nfuDate === today();
+      const hrs = new Date().getHours();
+      if (isToday && hrs < 14) coNfuWin = 'Call between 11am – 2pm today';
+      else if (isToday && hrs >= 14) coNfuWin = 'Call between 7:30am – 9am tomorrow';
+      else {
+        const dayName = new Date(nfuDate + 'T00:00:00').toLocaleDateString('en-AU', {weekday:'long'});
+        coNfuWin = dayName + ' — call between 7:30am – 9am';
+      }
+    }
     const coNfuRow = coNfu&&coNfu.date
-      ? `<div class="ci-row"><span class="ci-lbl">Next call</span><div><span style="font-weight:600;color:var(--green)">${fmtDisp(coNfu.date)}</span>${coNfuWin?`<br><span style="font-size:12px;color:#8B7335;font-weight:600">${coNfuWin}</span>`:''}</div></div>`
+      ? `<div class="ci-row"><span class="ci-lbl">Next call</span><div><span style="font-weight:600;color:var(--green)">${fmtDisp(coNfu.date)}</span>${coNfuWin?`<div style="font-size:12px;color:#8B7335;margin-top:4px">${coNfuWin}</div>`:''}</div></div>`
       : '';
 
     el.innerHTML = `
