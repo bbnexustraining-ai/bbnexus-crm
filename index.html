@@ -1738,6 +1738,17 @@ const DET = {
     toast('Linked to ' + co.name);
   },
 
+  createAndLinkCompany(cid) {
+    const c = DB.get(cid);
+    M.close('mo-link-company');
+    COL.openAdd();
+    setTimeout(() => {
+      const nameEl = document.getElementById('co-name');
+      if (nameEl && c) nameEl.value = c.company || '';
+      COL._pendingContactLink = cid;
+    }, 50);
+  },
+
   unlinkCompany(cid) {
     const c = DB.get(cid); if (!c || !c.linkedCompanyId) return;
     const co = DB.getCo(c.linkedCompanyId);
@@ -2920,6 +2931,19 @@ const COL = {
       updatedAt: new Date().toISOString()
     };
     DB.addCo(co);
+    // Bidirectional link if triggered from contact detail
+    if (this._pendingContactLink) {
+      const cid = this._pendingContactLink;
+      this._pendingContactLink = null;
+      DB.update(cid, {linkedCompanyId: co.id});
+      DB.updateCo(co.id, {linkedContactIds: [cid]});
+      M.close('mo-addco');
+      this._tier = null;
+      COL.render();
+      if (R.cur === 'detail') DET.render(cid);
+      toast('Company created and linked');
+      return;
+    }
     M.close('mo-addco');
     this._tier = null;
     COL.render();
@@ -3605,7 +3629,10 @@ AUTH.init();
       <div class="fg">
         <input type="search" class="search-in" id="lc-search" placeholder="Search companies…" oninput="DET._renderLinkCoList(this.value.toLowerCase())" style="padding-left:14px">
       </div>
-      <div id="lc-list" style="max-height:340px;overflow-y:auto"></div>
+      <div id="lc-list" style="max-height:300px;overflow-y:auto"></div>
+      <div style="padding:12px 0 4px">
+        <button class="btn btn-outline btn-block" id="lc-create-btn" onclick="DET.createAndLinkCompany(DET._linkCid)">+ Create new company</button>
+      </div>
     </div>
   </div>
 </div>
