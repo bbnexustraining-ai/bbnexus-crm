@@ -599,11 +599,15 @@ a{color:var(--gold);text-decoration:none}
           <select id="ac-source" onchange="M.toggleSourceOther()">
             <option value="">— select —</option>
             <option value="ccf-victoria-directory">CCF Victoria Directory</option>
+            <option value="master-builders-victoria">Master Builders Victoria</option>
+            <option value="sourceable">Sourceable</option>
+            <option value="major-projects-victoria">Major Projects Victoria</option>
+            <option value="council-approved-contractor">Council Approved Contractor List</option>
             <option value="linkedin-search">LinkedIn Search</option>
             <option value="warm-referral">Warm Referral</option>
+            <option value="fathers-network">Father's Network</option>
             <option value="cold-call">Cold Call</option>
             <option value="industry-event">Industry Event</option>
-            <option value="fathers-network">Father's Network</option>
             <option value="other">Other</option>
           </select>
         </div>
@@ -708,7 +712,7 @@ const STAGE_LBL = {
 };
 
 const TIER_LBL = { warm:'Warm', cold:'Cold', 'active-client':'Active Client' };
-const SOURCE_LBL = {'ccf-victoria-directory':'CCF Victoria Directory','linkedin-search':'LinkedIn Search','warm-referral':'Warm Referral','cold-call':'Cold Call','industry-event':'Industry Event','fathers-network':"Father's Network",'other':'Other'};
+const SOURCE_LBL = {'ccf-victoria-directory':'CCF Victoria Directory','master-builders-victoria':'Master Builders Victoria','sourceable':'Sourceable','major-projects-victoria':'Major Projects Victoria','council-approved-contractor':'Council Approved Contractor List','linkedin-search':'LinkedIn Search','warm-referral':'Warm Referral','fathers-network':"Father's Network",'cold-call':'Cold Call','industry-event':'Industry Event','other':'Other'};
 
 const INT_TYPES = [
   {v:'call-answered',l:'Call\nAnswered'},
@@ -936,44 +940,44 @@ function suggestFU(contact, newInt, baseDate) {
 
   // ── Combination overrides (Active Prospect) ────────────────
   if (stage === 'meeting-held') return { date: ensureWeekday(fmtISO(bizDays(now, 1))), method: 'call' };
-  if (tier === 'warm' && stage === 'engaged') return { date: ensureWeekday(fmtISO(bizDays(now, 1))), method: _srcMethod(src, tier, stage, contact.interactions, t) };
-  if (tier === 'cold' && stage === 'contacted') return { date: ensureWeekday(fmtISO(bizDays(now, 4))), method: _srcMethod(src, tier, stage, contact.interactions, t) };
+  if (tier === 'warm' && stage === 'engaged') return { date: ensureWeekday(fmtISO(bizDays(now, 1))), method: 'call' };
+  if (tier === 'cold' && stage === 'contacted') return { date: ensureWeekday(fmtISO(bizDays(now, 4))), method: 'call' };
 
   // ── Standard Active Prospect rules ────────────────────────
-  let days, meth;
+  const outcome = (newInt ? newInt.outcome || '' : '').toLowerCase();
 
   if (t === 'not-interested') return { date: ensureWeekday(fmtISO(calDays(now, 60))), method: 'call' };
 
-  if (t === 'call-no-answer') { days = 2; meth = 'call'; }
-  else if (t === 'voicemail-left') {
+  if (t === 'call-no-answer') {
+    if (/receptionist|unavailable|not available|away/.test(outcome))
+      return { date: ensureWeekday(fmtISO(bizDays(now, 2))), method: 'call' };
+    return { date: ensureWeekday(fmtISO(bizDays(now, 3))), method: 'call' };
+  }
+
+  if (t === 'voicemail-left') {
     const consec = countConsecutive(contact.interactions, 'voicemail-left');
-    days = 5; meth = consec >= 2 ? 'text' : 'call';
+    return { date: ensureWeekday(fmtISO(bizDays(now, 5))), method: consec >= 2 ? 'email' : 'call' };
   }
-  else if (t === 'email-sent') {
+
+  if (t === 'call-answered') {
+    if (/no need|no current need|not looking|fully resourced/.test(outcome))
+      return { date: ensureWeekday(fmtISO(calDays(now, 30))), method: 'call' };
+    if (/interest|interested|keen|send|follow up|callback/.test(outcome))
+      return { date: ensureWeekday(fmtISO(bizDays(now, 1))), method: 'call' };
+    return { date: ensureWeekday(fmtISO(bizDays(now, 2))), method: 'call' };
+  }
+
+  if (t === 'email-received') return { date: ensureWeekday(fmtISO(bizDays(now, 2))), method: 'email' };
+
+  if (t === 'meeting-in-person' || t === 'meeting-online')
+    return { date: ensureWeekday(fmtISO(bizDays(now, 1))), method: 'call' };
+
+  if (t === 'email-sent') {
     const consec = countConsecutive(contact.interactions, 'email-sent');
-    days = 3; meth = consec >= 2 ? 'call' : 'email';
+    return { date: ensureWeekday(fmtISO(bizDays(now, 3))), method: consec >= 2 ? 'call' : 'email' };
   }
-  else if (t === 'call-answered' || t === 'email-received') { days = 2; meth = t === 'email-received' ? 'email' : 'call'; }
-  else if (t === 'meeting-in-person' || t === 'meeting-online') { days = 1; meth = 'call'; }
-  else { days = 5; meth = 'call'; }
 
-  // Channel override by source/tier/stage
-  meth = _srcMethod(src, tier, stage, contact.interactions, t, meth);
-
-  return { date: ensureWeekday(fmtISO(bizDays(now, days))), method: meth };
-}
-
-function _srcMethod(src, tier, stage, interactions, intType, defaultMeth) {
-  const prevNoAnswer = (interactions||[]).some(i => i.interactionType === 'call-no-answer');
-  if (src === 'warm-referral') return prevNoAnswer ? 'text' : 'call';
-  if (src === 'fathers-network') return 'call';
-  if ((src === 'industry-event' || src === 'ccf-victoria-directory') && (stage === 'new' || stage === 'contacted')) return 'linkedin';
-  if (tier === 'cold' && stage === 'new') return 'linkedin';
-  if (intType === 'voicemail-left') {
-    const consec = countConsecutive(interactions, 'voicemail-left');
-    return consec >= 2 ? 'text' : (defaultMeth || 'call');
-  }
-  return defaultMeth || 'call';
+  return { date: ensureWeekday(fmtISO(bizDays(now, 3))), method: 'call' };
 }
 
 function countConsecutive(ints, type) {
@@ -1117,22 +1121,28 @@ const DASH = {
   _srcPerf(cs) {
     const el=document.getElementById('dash-src-perf');
     if (!el) return;
+    const ENGAGED_STAGES=new Set(['engaged','meeting-scheduled','meeting-held','proposal-sent','placement-confirmed','active-client']);
     const map={};
     cs.forEach(c=>{
       const k=c.source||'';
       if (!k) return;
-      if (!map[k]) map[k]={count:0,total:0};
+      if (!map[k]) map[k]={count:0,total:0,engaged:0};
       map[k].count++;
       map[k].total+=(c.heatScore||5);
+      if (ENGAGED_STAGES.has(c.stage||'')) map[k].engaged++;
     });
-    const rows=Object.entries(map).map(([k,v])=>({key:k,count:v.count,avg:+(v.total/v.count).toFixed(1)}));
-    rows.sort((a,b)=>b.avg-a.avg);
+    const rows=Object.entries(map).map(([k,v])=>({
+      key:k, count:v.count, avg:+(v.total/v.count).toFixed(1),
+      engaged:v.engaged, rate:v.count?Math.round(v.engaged/v.count*100):0
+    }));
+    rows.sort((a,b)=>b.rate-a.rate||b.avg-a.avg);
     if (!rows.length) { el.innerHTML='<div class="empty" style="padding:12px 0">No source data yet</div>'; return; }
     el.innerHTML='<div style="background:var(--card);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden">'
-      +rows.map((r,i)=>`<div style="display:flex;align-items:center;padding:10px 14px;${i?'border-top:1px solid var(--bg)':''}">
+      +rows.map((r,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;${i?'border-top:1px solid var(--bg)':''}">
         <div style="flex:1;font-size:14px;font-weight:600;color:var(--text)">${x(SOURCE_LBL[r.key]||r.key)}</div>
-        <div style="font-size:13px;color:var(--text2);margin-right:16px">${r.count} contact${r.count!==1?'s':''}</div>
-        <div style="font-size:14px;font-weight:700;color:${hcol(Math.round(r.avg))}">${r.avg} avg heat</div>
+        <div style="font-size:12px;color:var(--text2)">${r.count} contact${r.count!==1?'s':''}</div>
+        <div style="font-size:12px;font-weight:600;color:var(--green)">${r.engaged} engaged</div>
+        <div style="font-size:13px;font-weight:700;color:var(--green);min-width:38px;text-align:right">${r.rate}%</div>
       </div>`).join('')+'</div>';
   },
 
@@ -2243,7 +2253,7 @@ const IMP = {
     const tierRaw=(obj.relationshipTier||'').toLowerCase().replace(/[\s_]+/g,'-').trim();
     const tier=tierRaw==='warm'?'warm':tierRaw==='active-client'||tierRaw==='active client'?'active-client':tierRaw==='family-friend'||tierRaw==='family friend'||tierRaw==='referral'?'warm':tierRaw==='cold'?'cold':'cold';
     const srcRaw=(obj.source||'').toLowerCase().replace(/[\s_]+/g,'-').trim();
-    const validSrcs=['ccf-victoria-directory','linkedin-search','warm-referral','cold-call','industry-event','fathers-network','other'];
+    const validSrcs=['ccf-victoria-directory','master-builders-victoria','sourceable','major-projects-victoria','council-approved-contractor','linkedin-search','warm-referral','fathers-network','cold-call','industry-event','other'];
     const source=validSrcs.includes(srcRaw)?srcRaw:(srcRaw?'other':'');
     return {
       id:crypto.randomUUID(), name:obj.name, company:obj.company||'',
