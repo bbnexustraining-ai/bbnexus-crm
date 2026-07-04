@@ -961,6 +961,7 @@ const DB = {
           }
           if (row.key === 'passwords' && row.value && row.value.passwords) {
             localStorage.setItem('bb_passwords', JSON.stringify(row.value.passwords));
+            console.log('[DB.load] Loaded passwords from Supabase:', JSON.stringify(row.value.passwords));
           }
           if (row.key === 'display_names' && row.value && row.value.names) {
             localStorage.setItem('bb_display_names', JSON.stringify(row.value.names));
@@ -1289,30 +1290,35 @@ const AUTH = {
     if (u) { this.user = u; this.userKey = uk || u.toLowerCase(); this._show(); }
   },
 
-  login() {
+  async login() {
     const err = document.getElementById('auth-err');
+    const u = (document.getElementById('lu').value || '').trim().toLowerCase();
+    const p = document.getElementById('lp').value || '';
+    if (!u||!p) { err.textContent='Enter username and password.'; return; }
+    if (!USERS.hasOwnProperty(u)) { err.textContent='Invalid username or password.'; return; }
+
+    // Fetch latest passwords from Supabase before checking
     try {
-      const u = (document.getElementById('lu').value || '').trim().toLowerCase();
-      const p = document.getElementById('lp').value || '';
-      console.log('[BBNexus login] username:', u, '| password length:', p.length);
-      if (!u||!p) { err.textContent='Enter username and password.'; return; }
-      if (!USERS.hasOwnProperty(u)) { err.textContent='Invalid username or password.'; return; }
-      const stored = JSON.parse(localStorage.getItem('bb_passwords') || '{}');
-      const expected = stored.hasOwnProperty(u) ? stored[u] : USERS[u];
-      console.log('[BBNexus login] expected match:', expected === p);
-      if (expected === p) {
-        this.userKey = u;
-        this.user = u.charAt(0).toUpperCase()+u.slice(1);
-        sessionStorage.setItem('bb_user', this.user);
-        sessionStorage.setItem('bb_user_key', u);
-        err.textContent='';
-        this._show();
-      } else {
-        err.textContent='Invalid username or password.';
+      const {data, error} = await supa.from('app_settings').select('*').eq('key','passwords').single();
+      console.log('[Login] Supabase passwords fetch:', JSON.stringify(data), 'error:', error);
+      if (data && data.value && data.value.passwords) {
+        localStorage.setItem('bb_passwords', JSON.stringify(data.value.passwords));
+        console.log('[Login] Loaded passwords from Supabase:', JSON.stringify(data.value.passwords));
       }
-    } catch(e) {
-      console.error('[BBNexus login] error:', e);
-      err.textContent='Login error: ' + e.message;
+    } catch(e) { console.log('[Login] Could not fetch passwords from Supabase:', e); }
+
+    const stored = JSON.parse(localStorage.getItem('bb_passwords') || '{}');
+    console.log('[Login] Checking passwords:', JSON.stringify(stored));
+    const expected = stored.hasOwnProperty(u) ? stored[u] : USERS[u];
+    if (expected === p) {
+      this.userKey = u;
+      this.user = u.charAt(0).toUpperCase()+u.slice(1);
+      sessionStorage.setItem('bb_user', this.user);
+      sessionStorage.setItem('bb_user_key', u);
+      err.textContent='';
+      this._show();
+    } else {
+      err.textContent='Invalid username or password.';
     }
   },
 
@@ -2565,8 +2571,10 @@ const ST = {
     if (newpw !== confpw) { toast('New passwords do not match'); return; }
     stored[uKey] = newpw;
     localStorage.setItem('bb_passwords', JSON.stringify(stored));
-    supa.from('app_settings').upsert({key:'passwords', value:{passwords:stored}}).then(({error})=>{
-      if (error) console.error('[ST] sync passwords:', error);
+    console.log('[ST.savePassword] Saving password to Supabase:', uKey, newpw);
+    supa.from('app_settings').upsert({key:'passwords', value:{passwords:stored}}).then((result)=>{
+      console.log('[ST.savePassword] Supabase password save result:', JSON.stringify(result));
+      if (result.error) console.error('[ST] sync passwords:', result.error);
     });
     ['st-curpw','st-newpw','st-confpw'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
     toast('Password updated successfully');
