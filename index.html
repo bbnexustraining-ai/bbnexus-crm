@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>B&amp;B Nexus CRM</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ============================================================
    SECTION: DESIGN TOKENS & RESET
@@ -445,6 +446,12 @@ a{color:var(--gold);text-decoration:none}
   </div>
 </div>
 
+<!-- SYNC LOADING OVERLAY -->
+<div id="sync-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <span class="spinner" style="width:28px;height:28px;border-width:3px;border-top-color:var(--green)"></span>
+  <p style="font-size:14px;color:var(--text2);font-weight:500">Syncing data…</p>
+</div>
+
 <!-- ============================================================
      SECTION: MAIN APP
      ============================================================ -->
@@ -835,6 +842,13 @@ a{color:var(--gold);text-decoration:none}
 
 <script>
 /* ============================================================
+   SECTION: SUPABASE
+   ============================================================ */
+const SUPA_URL = 'https://lntyztqpbzdmisulxagy.supabase.co';
+const SUPA_KEY = 'sb_publishable_Xqn49--p2gPZIIBLUiHngA_i8QOm4x7';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+/* ============================================================
    SECTION: CONSTANTS
    ============================================================ */
 const USERS = { shyan:'shyan123', amal:'amal123', rahul:'rahul123' };
@@ -889,56 +903,128 @@ const DB = {
   _c: [],
   _co: [],
 
-  load() {
-    const r = localStorage.getItem('bb_contacts');
-    this._c = r ? JSON.parse(r) : [];
-    this._c.forEach(c => {
-      if (!c.contactMode) c.contactMode = 'active-prospect';
-      if (!c.conversionScore) c.conversionScore = {score:null,explanation:'',lastUpdated:null};
-      if (!c.relationshipSuggestion) c.relationshipSuggestion = {checkInReason:'',suggestedDate:null,reclassifyFlag:false,reclassifyReason:''};
-    });
-    const cr = localStorage.getItem('bb_companies');
-    this._co = cr ? JSON.parse(cr) : [];
+  _norm(c) {
+    if (!c.contactMode) c.contactMode = 'active-prospect';
+    if (!c.conversionScore) c.conversionScore = {score:null,explanation:'',lastUpdated:null};
+    if (!c.relationshipSuggestion) c.relationshipSuggestion = {checkInReason:'',suggestedDate:null,reclassifyFlag:false,reclassifyReason:''};
+    return c;
   },
 
+  // localStorage-only flush (for heat score recalcs — not synced individually)
   save() {
     localStorage.setItem('bb_contacts', JSON.stringify(this._c));
     localStorage.setItem('bb_companies', JSON.stringify(this._co));
   },
 
-  all() { return this._c; },
+  _upsertContact(c) {
+    supa.from('contacts').upsert({id: c.id, data: c}).then(({error}) => {
+      if (error) console.error('[DB] upsert contact:', error);
+    });
+  },
 
+  _upsertCompany(co) {
+    supa.from('companies').upsert({id: co.id, data: co}).then(({error}) => {
+      if (error) console.error('[DB] upsert company:', error);
+    });
+  },
+
+  async load() {
+    // Instant startup from localStorage cache
+    const r = localStorage.getItem('bb_contacts');
+    this._c = r ? JSON.parse(r) : [];
+    this._c.forEach(c => this._norm(c));
+    const cr = localStorage.getItem('bb_companies');
+    this._co = cr ? JSON.parse(cr) : [];
+
+    // Fetch from Supabase and merge/overwrite
+    try {
+      const [cRes, coRes, stRes] = await Promise.all([
+        supa.from('contacts').select('id,data'),
+        supa.from('companies').select('id,data'),
+        supa.from('app_settings').select('key,value')
+      ]);
+      if (!cRes.error && cRes.data) {
+        this._c = cRes.data.map(row => this._norm(row.data));
+        localStorage.setItem('bb_contacts', JSON.stringify(this._c));
+      }
+      if (!coRes.error && coRes.data) {
+        this._co = coRes.data.map(row => row.data);
+        localStorage.setItem('bb_companies', JSON.stringify(this._co));
+      }
+      if (!stRes.error && stRes.data) {
+        stRes.data.forEach(row => {
+          if (row.key === 'api_key' && row.value && row.value.key) {
+            localStorage.setItem('bb_api_key', row.value.key);
+          }
+          if (row.key === 'outreach_days' && row.value) {
+            localStorage.setItem('bb_outreach_days', JSON.stringify(row.value));
+          }
+        });
+      }
+    } catch(e) {
+      console.error('[DB] load from Supabase:', e);
+    }
+  },
+
+  all() { return this._c; },
   get(id) { return this._c.find(c => c.id === id) || null; },
 
-  add(c) { this._c.push(c); this.save(); },
+  add(c) {
+    this._c.push(c);
+    localStorage.setItem('bb_contacts', JSON.stringify(this._c));
+    this._upsertContact(c);
+  },
 
   update(id, u) {
     const i = this._c.findIndex(c => c.id === id);
     if (i < 0) return null;
     this._c[i] = { ...this._c[i], ...u, updatedAt: new Date().toISOString() };
-    this.save();
+    localStorage.setItem('bb_contacts', JSON.stringify(this._c));
+    this._upsertContact(this._c[i]);
     return this._c[i];
   },
 
-  delete(id) { this._c = this._c.filter(c => c.id !== id); this.save(); },
+  delete(id) {
+    this._c = this._c.filter(c => c.id !== id);
+    localStorage.setItem('bb_contacts', JSON.stringify(this._c));
+    supa.from('contacts').delete().eq('id', id).then(({error}) => {
+      if (error) console.error('[DB] delete contact:', error);
+    });
+  },
 
   allCo() { return this._co; },
   getCo(id) { return this._co.find(c=>c.id===id)||null; },
-  addCo(c) { this._co.push(c); this.save(); },
-  updateCo(id, u) {
-    const i=this._co.findIndex(c=>c.id===id);
-    if (i<0) return null;
-    this._co[i]={...this._co[i],...u,updatedAt:new Date().toISOString()};
-    this.save(); return this._co[i];
+
+  addCo(c) {
+    this._co.push(c);
+    localStorage.setItem('bb_companies', JSON.stringify(this._co));
+    this._upsertCompany(c);
   },
-  deleteCo(id) { this._co=this._co.filter(c=>c.id!==id); this.save(); },
+
+  updateCo(id, u) {
+    const i = this._co.findIndex(c=>c.id===id);
+    if (i<0) return null;
+    this._co[i] = {...this._co[i], ...u, updatedAt: new Date().toISOString()};
+    localStorage.setItem('bb_companies', JSON.stringify(this._co));
+    this._upsertCompany(this._co[i]);
+    return this._co[i];
+  },
+
+  deleteCo(id) {
+    this._co = this._co.filter(c=>c.id!==id);
+    localStorage.setItem('bb_companies', JSON.stringify(this._co));
+    supa.from('companies').delete().eq('id', id).then(({error}) => {
+      if (error) console.error('[DB] delete company:', error);
+    });
+  },
 
   addInteraction(cid, ix) {
     const c = this.get(cid);
     if (!c) return;
     c.interactions.unshift(ix);
     c.updatedAt = new Date().toISOString();
-    this.save();
+    localStorage.setItem('bb_contacts', JSON.stringify(this._c));
+    this._upsertContact(c);
   },
 
   updateInteraction(cid, iid, data) {
@@ -948,7 +1034,8 @@ const DB = {
     if (idx < 0) return;
     c.interactions[idx] = { ...c.interactions[idx], ...data };
     c.updatedAt = new Date().toISOString();
-    this.save();
+    localStorage.setItem('bb_contacts', JSON.stringify(this._c));
+    this._upsertContact(c);
   },
 
   deleteInteraction(cid, iid) {
@@ -956,16 +1043,28 @@ const DB = {
     if (!c) return;
     c.interactions = c.interactions.filter(i => i.id !== iid);
     c.updatedAt = new Date().toISOString();
-    this.save();
+    localStorage.setItem('bb_contacts', JSON.stringify(this._c));
+    this._upsertContact(c);
   },
 
   getKey() { return localStorage.getItem('bb_api_key') || ''; },
-  setKey(k) { localStorage.setItem('bb_api_key', k); },
+
+  setKey(k) {
+    localStorage.setItem('bb_api_key', k);
+    supa.from('app_settings').upsert({key:'api_key', value:{key:k}}).then(({error}) => {
+      if (error) console.error('[DB] setKey:', error);
+    });
+  },
 
   export() { return { contacts: this._c, exportedAt: new Date().toISOString(), v: 1 }; },
 
   import(d) {
-    if (d && Array.isArray(d.contacts)) { this._c = d.contacts; this.save(); return true; }
+    if (d && Array.isArray(d.contacts)) {
+      this._c = d.contacts;
+      localStorage.setItem('bb_contacts', JSON.stringify(this._c));
+      this._c.forEach(c => this._upsertContact(c));
+      return true;
+    }
     return false;
   }
 };
@@ -1223,8 +1322,13 @@ const AUTH = {
     document.getElementById('lp').value='';
   },
 
-  _show() {
+  async _show() {
     document.getElementById('auth').style.display='none';
+    // Show loading overlay while fetching from Supabase
+    const ov = document.getElementById('sync-overlay');
+    if (ov) ov.style.display='flex';
+    await DB.load();
+    if (ov) ov.style.display='none';
     document.getElementById('main').classList.add('on');
     document.getElementById('hdr-user').textContent=this.user;
     document.getElementById('set-user').textContent=this.user;
@@ -2377,7 +2481,12 @@ const OD = {
 
   load() { return getOutreachDays(); },
 
-  save(od) { localStorage.setItem('bb_outreach_days', JSON.stringify(od)); },
+  save(od) {
+    localStorage.setItem('bb_outreach_days', JSON.stringify(od));
+    supa.from('app_settings').upsert({key:'outreach_days', value:od}).then(({error}) => {
+      if (error) console.error('[OD] save:', error);
+    });
+  },
 
   toggle(day) {
     const od = this.load();
@@ -3429,7 +3538,8 @@ const CALL = {
 /* ============================================================
    SECTION: INIT
    ============================================================ */
-DB.load();
+// Pre-populate from localStorage for instant startup; full async sync happens in AUTH._show()
+DB.load().catch(()=>{});
 AUTH.init();
 </script>
 
