@@ -959,6 +959,12 @@ const DB = {
           if (row.key === 'outreach_days' && row.value) {
             localStorage.setItem('bb_outreach_days', JSON.stringify(row.value));
           }
+          if (row.key === 'passwords' && row.value && row.value.passwords) {
+            localStorage.setItem('bb_passwords', JSON.stringify(row.value.passwords));
+          }
+          if (row.key === 'display_names' && row.value && row.value.names) {
+            localStorage.setItem('bb_display_names', JSON.stringify(row.value.names));
+          }
         });
       }
     } catch(e) {
@@ -2466,6 +2472,9 @@ const PASSWD = {
     const stored = JSON.parse(localStorage.getItem('bb_passwords') || '{}');
     stored[this._sel] = np;
     localStorage.setItem('bb_passwords', JSON.stringify(stored));
+    supa.from('app_settings').upsert({key:'passwords', value:{passwords:stored}}).then(({error})=>{
+      if (error) console.error('[PASSWD] sync passwords:', error);
+    });
     this.close();
     toast('Password updated — please sign in');
   }
@@ -2532,6 +2541,9 @@ const ST = {
     const names = JSON.parse(localStorage.getItem('bb_display_names') || '{}');
     names[AUTH.userKey || AUTH.user.toLowerCase()] = name;
     localStorage.setItem('bb_display_names', JSON.stringify(names));
+    supa.from('app_settings').upsert({key:'display_names', value:{names}}).then(({error})=>{
+      if (error) console.error('[ST] sync display_names:', error);
+    });
     AUTH.user = name;
     sessionStorage.setItem('bb_user', name);
     document.getElementById('hdr-user').textContent = name;
@@ -2553,6 +2565,9 @@ const ST = {
     if (newpw !== confpw) { toast('New passwords do not match'); return; }
     stored[uKey] = newpw;
     localStorage.setItem('bb_passwords', JSON.stringify(stored));
+    supa.from('app_settings').upsert({key:'passwords', value:{passwords:stored}}).then(({error})=>{
+      if (error) console.error('[ST] sync passwords:', error);
+    });
     ['st-curpw','st-newpw','st-confpw'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
     toast('Password updated successfully');
   },
