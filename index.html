@@ -2925,6 +2925,14 @@ function calcCoHeat(co) {
   return Math.min(10, Math.max(1, Math.round(s * 10) / 10));
 }
 
+function calcCallStats(co) {
+  const ints = co.interactions || [];
+  return {
+    totalAttempts: ints.length,
+    voicemailCount: ints.filter(i => i.outcome === 'voicemail').length
+  };
+}
+
 /* ============================================================
    SECTION: CALLING WINDOW UTIL
    ============================================================ */
@@ -3181,7 +3189,7 @@ const COD = {
         ${co.email?`<div class="ci-row"><span class="ci-lbl">Email</span><a href="mailto:${x(co.email)}" style="color:var(--green);font-weight:500">${x(co.email)}</a></div>`:''}
         ${co.website?`<div class="ci-row"><span class="ci-lbl">Website</span><a href="${x(co.website)}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:500">${x(co.website)}</a></div>`:''}
         ${co.linkedIn?`<div class="ci-row"><span class="ci-lbl">LinkedIn</span><a href="${co.linkedIn.startsWith('http')?x(co.linkedIn):'https://'+x(co.linkedIn)}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:500">${x(co.linkedIn)}</a></div>`:''}
-        <div class="ci-row"><span class="ci-lbl">Calls</span><span>${co.callAttempts||0} attempts · ${co.voicemailCount||0} voicemails</span></div>
+        <div class="ci-row"><span class="ci-lbl">Calls</span><span>${(()=>{const s=calcCallStats(co);return s.totalAttempts+' attempts · '+s.voicemailCount+' voicemails';})()}</span></div>
         ${coNfuRow}
         ${co.notes?`<div class="ci-row"><span class="ci-lbl">Notes</span><span>${x(co.notes)}</span></div>`:''}
         <div class="ci-row"><span class="ci-lbl">Cap. statement</span><div>${capBanner}</div></div>
@@ -3446,10 +3454,11 @@ const CALL = {
     alertEl.style.display='none';
 
     if (out === 'no-answer') {
-      const attempts = (co.callAttempts||0) + 1;
+      const stats = calcCallStats(co);
+      const attempts = stats.totalAttempts + 1;
       const window = nextCallWindow();
       let alertHtml = '';
-      if (attempts >= 3 && (co.voicemailCount||0) === 0) {
+      if (attempts >= 3 && stats.voicemailCount === 0) {
         alertHtml = `<div class="cap-banner" style="margin:12px 0 0"><span style="font-size:20px">💬</span><p>3 no answers with no voicemail — send a text instead?</p><button class="btn btn-gold btn-sm" onclick="CALL._switchToText()">Confirm</button></div>`;
       }
       cueEl.innerHTML = `<div class="cue-card">
@@ -3461,7 +3470,7 @@ const CALL = {
     }
 
     else if (out === 'voicemail') {
-      const vmCount = (co.voicemailCount||0) + 1;
+      const vmCount = calcCallStats(co).voicemailCount + 1;
       const nextDate = fmtDisp(fmtISO(bizDays(new Date(),5)));
       let alert2 = '';
       if (vmCount >= 2) {
@@ -3568,13 +3577,11 @@ const CALL = {
       nextFollowUpDate = fmtISO(bizDays(now, 3));
     } else if (out === 'voicemail') {
       newOutcomeKey = 'voicemail';
-      const newVm = (co.voicemailCount||0) + 1;
+      const newVm = calcCallStats(co).voicemailCount + 1;
       nextFollowUpDate = newVm >= 2 ? fmtISO(bizDays(now,1)) : fmtISO(bizDays(now,5));
-      DB.updateCo(this._coId, {voicemailCount: newVm});
     } else if (out === 'gatekeeper') {
       newOutcomeKey = 'gatekeeper';
       nextFollowUpDate = fmtISO(bizDays(now,1));
-      DB.updateCo(this._coId, {callAttempts: 0});
     } else if (out === 'decision-maker') {
       if (!this._dmSub) { toast('Please select a response type'); return; }
       if (this._dmSub === 'interested') {
@@ -3590,10 +3597,7 @@ const CALL = {
       }
     }
 
-    // Increment call attempts for non-gatekeeper outcomes
-    if (out !== 'gatekeeper') {
-      DB.updateCo(this._coId, {callAttempts: (co.callAttempts||0)+1});
-    }
+    // callAttempts and voicemailCount are now derived from interactions — no stored increment needed
 
     const ix = {
       id: crypto.randomUUID(),
