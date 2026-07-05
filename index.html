@@ -2988,7 +2988,7 @@ const COL = {
     const tierCls = CO_TIER_CLASS[co.tier]||'b-t4';
     const tierLbl = CO_TIER_LBL[co.tier]||co.tier;
     const sc = co.heatScore||5;
-    const srcLbl = co.source==='other'?(co.sourceOther||'Other'):(CO_SOURCE_LBL[co.source]||'');
+    const srcLbl = co.source==='other'?(co.sourceOther||'Other'):(CO_SOURCE_LBL[co.source]||co.source||'');
     const linked = (co.linkedContactIds||[]).length;
     const lastInt = co.lastInteractionAt ? relDate(co.lastInteractionAt) : 'No calls yet';
     return `<div class="co-card" onclick="R.go('company-detail','${co.id}')">
@@ -3109,7 +3109,7 @@ const COD = {
     const sc = co.heatScore;
     const tierCls = CO_TIER_CLASS[co.tier]||'b-t4';
     const tierLbl = CO_TIER_LBL[co.tier]||co.tier;
-    const srcLbl = co.source==='other'?(co.sourceOther||'Other'):(CO_SOURCE_LBL[co.source]||'');
+    const srcLbl = co.source==='other'?(co.sourceOther||'Other'):(CO_SOURCE_LBL[co.source]||co.source||'');
     const capBanner = co.capabilityStatementSent
       ? `<p style="font-size:13px;color:var(--green);font-weight:600;margin-top:8px">✓ Capability statement sent ${co.capabilityStatementSentAt?fmtDisp(co.capabilityStatementSentAt.split('T')[0]):''}</p>`
       : `<button class="btn btn-outline btn-sm mt8" onclick="COD.markCapSent('${id}')">Mark as Sent</button>`;
@@ -3878,12 +3878,12 @@ AUTH.init();
       <div class="fg"><label>Company Name *</label><input type="text" id="eco-name" placeholder="Company name"></div>
       <div class="fg">
         <label>Tier</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="co-tier-card" id="eco-t1" onclick="COD.setEditTier('1')" style="flex:1;min-width:80px"><span class="co-tier-lbl">Tier 1</span></button>
-          <button class="co-tier-card" id="eco-t2" onclick="COD.setEditTier('2')" style="flex:1;min-width:80px"><span class="co-tier-lbl">Tier 2</span></button>
-          <button class="co-tier-card" id="eco-t3" onclick="COD.setEditTier('3')" style="flex:1;min-width:80px"><span class="co-tier-lbl">Tier 3</span></button>
-          <button class="co-tier-card" id="eco-t4" onclick="COD.setEditTier('4')" style="flex:1;min-width:80px"><span class="co-tier-lbl">Tier 4</span></button>
-          <button class="co-tier-card" id="eco-texcl" onclick="COD.setEditTier('excluded')" style="flex:1;min-width:80px"><span class="co-tier-lbl">Excluded</span></button>
+        <div id="eco-tier-sel" style="display:flex;flex-direction:column;gap:6px">
+          <button class="co-tier-card" id="eco-t1" onclick="COD.setEditTier('1')"><span class="co-tier-lbl">Tier 1</span><span class="co-tier-desc">Formwork and steel fixing subcontractors. Direct buyers. Call first.</span></button>
+          <button class="co-tier-card" id="eco-t2" onclick="COD.setEditTier('2')"><span class="co-tier-lbl">Tier 2</span><span class="co-tier-desc">Civil subcontractors doing concrete structures, bridges, retaining walls, culverts or drainage.</span></button>
+          <button class="co-tier-card" id="eco-t3" onclick="COD.setEditTier('3')"><span class="co-tier-lbl">Tier 3</span><span class="co-tier-desc">Mid-tier civil contractors under $100M. May use direct labour hire for surge periods.</span></button>
+          <button class="co-tier-card" id="eco-t4" onclick="COD.setEditTier('4')"><span class="co-tier-lbl">Tier 4</span><span class="co-tier-desc">Larger civil contractors. Target for market intel and subcontractor introductions.</span></button>
+          <button class="co-tier-card" id="eco-texcl" onclick="COD.setEditTier('excluded')"><span class="co-tier-lbl">Excluded</span><span class="co-tier-desc">Traffic management, earthworks-only, or landscaping civil. Out of scope.</span></button>
         </div>
       </div>
       <div class="fg"><label>Source</label><input type="text" id="eco-source" placeholder="e.g. CCF Victoria Directory"></div>
