@@ -3020,7 +3020,7 @@ const COL = {
   },
 
   openAdd() {
-    ['co-name','co-suburb','co-trade','co-notes','co-source'].forEach(id=>{
+    ['co-name','co-suburb','co-trade','co-notes','co-source','co-phone','co-email','co-website','co-linkedin'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.value='';
     });
     this._tier=null;
@@ -3053,6 +3053,10 @@ const COL = {
       suburb: document.getElementById('co-suburb').value.trim(),
       primaryTrade: document.getElementById('co-trade').value.trim(),
       notes: document.getElementById('co-notes').value.trim(),
+      phone: document.getElementById('co-phone').value.trim(),
+      email: document.getElementById('co-email').value.trim(),
+      website: document.getElementById('co-website').value.trim(),
+      linkedIn: document.getElementById('co-linkedin').value.trim(),
       stage: 'new',
       heatScore: 5,
       callAttempts: 0,
@@ -3173,13 +3177,17 @@ const COD = {
         <div class="ci-row"><span class="ci-lbl">Source</span><span>${x(srcLbl||'—')}</span></div>
         <div class="ci-row"><span class="ci-lbl">Suburb</span><span>${x(co.suburb||'—')}</span></div>
         <div class="ci-row"><span class="ci-lbl">Trade</span><span>${x(co.primaryTrade||'—')}</span></div>
+        ${co.phone?`<div class="ci-row"><span class="ci-lbl">Phone</span><a href="tel:${x(co.phone)}" style="color:var(--green);font-weight:500">${x(co.phone)}</a></div>`:''}
+        ${co.email?`<div class="ci-row"><span class="ci-lbl">Email</span><a href="mailto:${x(co.email)}" style="color:var(--green);font-weight:500">${x(co.email)}</a></div>`:''}
+        ${co.website?`<div class="ci-row"><span class="ci-lbl">Website</span><a href="${x(co.website)}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:500">${x(co.website)}</a></div>`:''}
+        ${co.linkedIn?`<div class="ci-row"><span class="ci-lbl">LinkedIn</span><a href="${co.linkedIn.startsWith('http')?x(co.linkedIn):'https://'+x(co.linkedIn)}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:500">${x(co.linkedIn)}</a></div>`:''}
         <div class="ci-row"><span class="ci-lbl">Calls</span><span>${co.callAttempts||0} attempts · ${co.voicemailCount||0} voicemails</span></div>
         ${coNfuRow}
         ${co.notes?`<div class="ci-row"><span class="ci-lbl">Notes</span><span>${x(co.notes)}</span></div>`:''}
         <div class="ci-row"><span class="ci-lbl">Cap. statement</span><div>${capBanner}</div></div>
-        <div class="ci-row" style="align-items:center">
-          <span class="ci-lbl">Delete</span>
-          <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red)" onclick="COD.del('${id}')">Delete company</button>
+        <div class="ci-row" style="align-items:center;gap:8px">
+          <button class="btn btn-outline btn-sm" onclick="COD.openEdit('${id}')">Edit Company</button>
+          <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red)" onclick="COD.del('${id}')">Delete</button>
         </div>
       </div>
       <div class="sec-title">Linked Contacts (${linked.length})</div>
@@ -3206,16 +3214,113 @@ const COD = {
       'gatekeeper':'🛡 Gatekeeper','decision-maker-no-interest':'🤝 DM – No Interest',
       'decision-maker-interested':'🤝 DM – Interested!'
     };
+    const coId = this._id;
     return `<div class="int-entry">
       <div class="int-e-hdr">
         <span class="int-chip">${lbl[i.outcome]||i.outcome||'Call'}</span>
         <span class="int-date">${relDate(i.timestamp)}</span>
         <span class="int-by">${x(i.createdBy||'')}</span>
-        ${i.nextFollowUp?`<span style="font-size:11px;color:var(--gold);font-weight:600">→ ${fmtDisp(i.nextFollowUp)}</span>`:''}
+        <span style="margin-left:auto;display:flex;gap:4px;flex-shrink:0">
+          <button class="btn btn-outline btn-sm" style="padding:2px 8px;font-size:11px" onclick="COD.openEditCoInt('${coId}','${i.id}')">Edit</button>
+          <button class="btn btn-outline btn-sm" style="padding:2px 8px;font-size:11px;color:var(--red);border-color:var(--red)" onclick="COD.delCoInteraction('${coId}','${i.id}')">Delete</button>
+        </span>
       </div>
       ${i.notes?`<div style="font-size:13px;color:var(--text2);margin-top:4px">${x(i.notes)}</div>`:''}
       ${i.dmName?`<div style="font-size:13px;color:var(--text2);margin-top:2px">DM: ${x(i.dmName)}</div>`:''}
     </div>`;
+  },
+
+  delCoInteraction(coId, iid) {
+    if (!confirm('Delete this interaction? This cannot be undone.')) return;
+    const co = DB.getCo(coId); if (!co) return;
+    co.interactions = (co.interactions||[]).filter(i=>i.id!==iid);
+    co.heatScore = calcCoHeat(co);
+    DB.updateCo(coId, {interactions: co.interactions, heatScore: co.heatScore});
+    this.render(coId);
+    toast('Interaction deleted');
+  },
+
+  openEditCoInt(coId, iid) {
+    const co = DB.getCo(coId); if (!co) return;
+    const ix = (co.interactions||[]).find(i=>i.id===iid); if (!ix) return;
+    this._editCoId = coId;
+    this._editIid = iid;
+    const outEl = document.getElementById('eco-outcome');
+    const notesEl = document.getElementById('eco-notes');
+    const dateEl = document.getElementById('eco-date');
+    if (outEl) outEl.value = ix.outcome||'';
+    if (notesEl) notesEl.value = ix.notes||'';
+    if (dateEl) dateEl.value = ix.timestamp ? ix.timestamp.split('T')[0] : '';
+    document.getElementById('mo-edit-co-int').classList.add('on');
+  },
+
+  saveEditCoInt() {
+    const co = DB.getCo(this._editCoId); if (!co) return;
+    const idx = (co.interactions||[]).findIndex(i=>i.id===this._editIid);
+    if (idx<0) return;
+    const dateVal = document.getElementById('eco-date').value;
+    co.interactions[idx] = {
+      ...co.interactions[idx],
+      outcome: document.getElementById('eco-outcome').value,
+      notes: document.getElementById('eco-notes').value.trim(),
+      timestamp: dateVal ? dateVal+'T09:00:00.000Z' : co.interactions[idx].timestamp
+    };
+    co.heatScore = calcCoHeat(co);
+    DB.updateCo(this._editCoId, {interactions: co.interactions, heatScore: co.heatScore});
+    M.close('mo-edit-co-int');
+    this.render(this._editCoId);
+    toast('Interaction updated');
+  },
+
+  openEdit(id) {
+    const co = DB.getCo(id); if (!co) return;
+    this._editCoId = id;
+    const setV = (elId, val) => { const e=document.getElementById(elId); if(e) e.value=val||''; };
+    setV('eco-name', co.name);
+    setV('eco-source', co.source);
+    setV('eco-suburb', co.suburb);
+    setV('eco-trade', co.primaryTrade);
+    setV('eco-notes2', co.notes);
+    setV('eco-phone', co.phone);
+    setV('eco-email', co.email);
+    setV('eco-website', co.website);
+    setV('eco-linkedin', co.linkedIn);
+    // Set tier
+    this._editTier = co.tier;
+    ['1','2','3','4','excluded'].forEach(v=>{
+      const map={'1':'eco-t1','2':'eco-t2','3':'eco-t3','4':'eco-t4','excluded':'eco-texcl'};
+      const b=document.getElementById(map[v]); if(b) b.classList.toggle('on', v===co.tier);
+    });
+    document.getElementById('mo-edit-co').classList.add('on');
+  },
+
+  setEditTier(v) {
+    this._editTier = v;
+    ['1','2','3','4','excluded'].forEach(t=>{
+      const map={'1':'eco-t1','2':'eco-t2','3':'eco-t3','4':'eco-t4','excluded':'eco-texcl'};
+      const b=document.getElementById(map[t]); if(b) b.classList.toggle('on', t===v);
+    });
+  },
+
+  saveEdit() {
+    const name=(document.getElementById('eco-name').value||'').trim();
+    if (!name) { toast('Company name is required'); return; }
+    DB.updateCo(this._editCoId, {
+      name,
+      tier: this._editTier || DB.getCo(this._editCoId)?.tier,
+      source: document.getElementById('eco-source').value.trim(),
+      suburb: document.getElementById('eco-suburb').value.trim(),
+      primaryTrade: document.getElementById('eco-trade').value.trim(),
+      notes: document.getElementById('eco-notes2').value.trim(),
+      phone: document.getElementById('eco-phone').value.trim(),
+      email: document.getElementById('eco-email').value.trim(),
+      website: document.getElementById('eco-website').value.trim(),
+      linkedIn: document.getElementById('eco-linkedin').value.trim()
+    });
+    M.close('mo-edit-co');
+    this.render(this._editCoId);
+    COL.render();
+    toast('Company updated');
   },
 
   setStage(id, stage) {
@@ -3686,6 +3791,10 @@ AUTH.init();
       <div class="fg"><label>Suburb / Region</label><input type="text" id="co-suburb" placeholder="e.g. Werribee, Western Metro"></div>
       <div class="fg"><label>Primary Trade / Service</label><input type="text" id="co-trade" placeholder="e.g. Formwork, Steel Fixing"></div>
       <div class="fg"><label>Notes</label><textarea id="co-notes" placeholder="Initial notes…"></textarea></div>
+      <div class="fg"><label>Phone</label><input type="tel" id="co-phone" placeholder="e.g. 03 9000 0000"></div>
+      <div class="fg"><label>Email</label><input type="email" id="co-email" placeholder="info@company.com.au"></div>
+      <div class="fg"><label>Website</label><input type="url" id="co-website" placeholder="https://www.company.com.au"></div>
+      <div class="fg"><label>LinkedIn</label><input type="text" id="co-linkedin" placeholder="linkedin.com/company/..."></div>
     </div>
     <div class="m-foot">
       <button class="btn btn-outline" style="flex:1" onclick="M.close('mo-addco')">Cancel</button>
@@ -3754,6 +3863,69 @@ AUTH.init();
     </div>
     <div class="srch-results" id="srch-results">
       <div class="srch-empty">Start typing to search…</div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT COMPANY MODAL -->
+<div class="mo" id="mo-edit-co">
+  <div class="sheet">
+    <div class="m-hdr">
+      <h3>Edit Company</h3>
+      <button class="m-close" onclick="M.close('mo-edit-co')">×</button>
+    </div>
+    <div class="m-body">
+      <div class="fg"><label>Company Name *</label><input type="text" id="eco-name" placeholder="Company name"></div>
+      <div class="fg">
+        <label>Tier</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="co-tier-card" id="eco-t1" onclick="COD.setEditTier('1')" style="flex:1;min-width:80px"><span class="co-tier-lbl">Tier 1</span></button>
+          <button class="co-tier-card" id="eco-t2" onclick="COD.setEditTier('2')" style="flex:1;min-width:80px"><span class="co-tier-lbl">Tier 2</span></button>
+          <button class="co-tier-card" id="eco-t3" onclick="COD.setEditTier('3')" style="flex:1;min-width:80px"><span class="co-tier-lbl">Tier 3</span></button>
+          <button class="co-tier-card" id="eco-t4" onclick="COD.setEditTier('4')" style="flex:1;min-width:80px"><span class="co-tier-lbl">Tier 4</span></button>
+          <button class="co-tier-card" id="eco-texcl" onclick="COD.setEditTier('excluded')" style="flex:1;min-width:80px"><span class="co-tier-lbl">Excluded</span></button>
+        </div>
+      </div>
+      <div class="fg"><label>Source</label><input type="text" id="eco-source" placeholder="e.g. CCF Victoria Directory"></div>
+      <div class="fg"><label>Suburb / Region</label><input type="text" id="eco-suburb" placeholder="e.g. Werribee"></div>
+      <div class="fg"><label>Primary Trade / Service</label><input type="text" id="eco-trade" placeholder="e.g. Formwork, Steel Fixing"></div>
+      <div class="fg"><label>Phone</label><input type="tel" id="eco-phone" placeholder="e.g. 03 9000 0000"></div>
+      <div class="fg"><label>Email</label><input type="email" id="eco-email" placeholder="info@company.com.au"></div>
+      <div class="fg"><label>Website</label><input type="url" id="eco-website" placeholder="https://www.company.com.au"></div>
+      <div class="fg"><label>LinkedIn</label><input type="text" id="eco-linkedin" placeholder="linkedin.com/company/..."></div>
+      <div class="fg"><label>Notes</label><textarea id="eco-notes2" placeholder="Notes…"></textarea></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-outline" style="flex:1" onclick="M.close('mo-edit-co')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="COD.saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT COMPANY INTERACTION MODAL -->
+<div class="mo" id="mo-edit-co-int">
+  <div class="sheet">
+    <div class="m-hdr">
+      <h3>Edit Interaction</h3>
+      <button class="m-close" onclick="M.close('mo-edit-co-int')">×</button>
+    </div>
+    <div class="m-body">
+      <div class="fg">
+        <label>Outcome</label>
+        <select id="eco-outcome">
+          <option value="no-answer">📵 No Answer</option>
+          <option value="voicemail">📬 Voicemail Left</option>
+          <option value="gatekeeper">🛡 Gatekeeper</option>
+          <option value="decision-maker-no-interest">🤝 DM – No Interest</option>
+          <option value="decision-maker-interested">🤝 DM – Interested!</option>
+        </select>
+      </div>
+      <div class="fg"><label>Date</label><input type="date" id="eco-date"></div>
+      <div class="fg"><label>Notes</label><textarea id="eco-notes" placeholder="Notes…"></textarea></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-outline" style="flex:1" onclick="M.close('mo-edit-co-int')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="COD.saveEditCoInt()">Save</button>
     </div>
   </div>
 </div>
