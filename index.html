@@ -1139,7 +1139,7 @@ function bizDays(date, n) {
   const odMap = [null,'sun','mon','tue','wed','thu','fri','sat']; // index 0 unused, 1=Sun
   // JS: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
   const jsOdMap = {1:od.mon,2:od.tue,3:od.wed,4:od.thu,5:od.fri};
-  const d = new Date(date);
+  const d = typeof date === 'string' ? new Date(date + (date.length === 10 ? 'T00:00:00' : '')) : new Date(date);
   let added = 0;
   while (added < n) {
     d.setDate(d.getDate() + 1);
@@ -1149,7 +1149,7 @@ function bizDays(date, n) {
   return d;
 }
 
-function calDays(date, n) { const d=new Date(date); d.setDate(d.getDate()+n); return d; }
+function calDays(date, n) { const d = typeof date === 'string' ? new Date(date + (date.length === 10 ? 'T00:00:00' : '')) : new Date(date); d.setDate(d.getDate()+n); return d; }
 
 function ensureWeekday(dateStr) {
   if (!dateStr || typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
@@ -1164,14 +1164,26 @@ function ensureWeekday(dateStr) {
   return fmtISO(d);
 }
 
-function fmtISO(d) { return (typeof d==='string'?new Date(d):d).toISOString().split('T')[0]; }
+function fmtISO(d) {
+  const dt = typeof d === 'string' ? new Date(d + (d.length === 10 ? 'T00:00:00' : '')) : d;
+  const year = dt.getFullYear();
+  const month = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 function fmtDisp(s) {
   if (!s) return '';
   return new Date(s+'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 }
 
-function today() { return fmtISO(new Date()); }
+function today() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 function _callingWindow(dateStr) {
   if (!dateStr) return '';
