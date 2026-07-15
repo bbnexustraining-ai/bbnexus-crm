@@ -533,6 +533,7 @@ a{color:var(--gold);text-decoration:none}
       <div class="sec-title">Pipeline Summary</div>
       <div class="pipe-grid" id="pipe-grid"></div>
       <div class="dash-group-hdr">Active Prospects</div>
+      <div id="fu-hot-pursuit"></div>
       <div class="sec-title" style="padding-top:4px">Today's Follow-ups</div>
       <div class="fu-list" id="fu-today"></div>
       <div class="sec-title">This Week's Follow-ups</div>
@@ -907,6 +908,7 @@ const DB = {
     if (!c.contactMode) c.contactMode = 'active-prospect';
     if (!c.conversionScore) c.conversionScore = {score:null,explanation:'',lastUpdated:null};
     if (!c.relationshipSuggestion) c.relationshipSuggestion = {checkInReason:'',suggestedDate:null,reclassifyFlag:false,reclassifyReason:''};
+    if ((c.contactMode||'active-prospect')==='active-prospect' && !c.pursuitPriority) c.pursuitPriority = 'active';
     return c;
   },
 
@@ -1459,6 +1461,22 @@ const DASH = {
     const apConf = ap.filter(c=>c.nextFollowUp&&c.nextFollowUp.confirmed&&c.nextFollowUp.date);
     const rbConf = rb.filter(c=>c.nextFollowUp&&c.nextFollowUp.confirmed&&c.nextFollowUp.date);
 
+    const hotContacts = ap.filter(c=>(c.pursuitPriority||'active')==='hot').sort((a,b)=>b.heatScore-a.heatScore);
+    const hotEl = document.getElementById('fu-hot-pursuit');
+    if (hotEl) {
+      if (!hotContacts.length) { hotEl.innerHTML=''; }
+      else hotEl.innerHTML = `<div style="margin:0 16px 4px;padding:12px 14px;background:var(--card);border-radius:10px;border-left:4px solid #E63946">
+        <div style="font-size:13px;font-weight:700;color:#E63946;margin-bottom:8px">🔥 Hot Pursuit</div>
+        ${hotContacts.map(c=>`<div class="fu-card" onclick="R.go('detail','${c.id}')" style="border-left:none;padding-left:0">
+          <div class="dot ${band(c.heatScore||5)}"></div>
+          <div class="fu-info"><div class="fu-name">${x(c.name)}</div><div class="fu-co">${x(c.company)}</div>
+          ${c.nextFollowUp&&c.nextFollowUp.confirmed&&c.nextFollowUp.date?`<div class="fu-meta">Next: ${fmtDisp(c.nextFollowUp.date)}</div>`:''}
+          </div>
+          <div class="hs" style="color:${hcol(c.heatScore||5)}">${c.heatScore||5}</div>
+        </div>`).join('')}
+      </div>`;
+    }
+
     this._fuList('fu-today', apConf.filter(c=>c.nextFollowUp.date===td).sort((a,b)=>b.heatScore-a.heatScore), false);
     this._fuList('fu-week',  apConf.filter(c=>c.nextFollowUp.date>td&&c.nextFollowUp.date<=wkEnd).sort((a,b)=>b.heatScore-a.heatScore), false);
     this._fuList('fu-ov',    apConf.filter(c=>c.nextFollowUp.date<td).sort((a,b)=>b.heatScore-a.heatScore), true);
@@ -1557,6 +1575,7 @@ const CL = {
       {k:'tier',v:'warm',l:'Warm'},{k:'tier',v:'cold',l:'Cold'},{k:'tier',v:'active-client',l:'Active Client'},
       {k:'heat',v:'hot',l:'🔴 Hot'},{k:'heat',v:'warm',l:'🟡 Warm'},{k:'heat',v:'cold',l:'⚪ Cold'},
       {k:'mode',v:'active-prospect',l:'Prospect'},{k:'mode',v:'relationship-builder',l:'Nurture'},
+      {k:'priority',v:'hot',l:'🔥 Hot Pursuit'},{k:'priority',v:'active',l:'📋 Active'},{k:'priority',v:'parked',l:'💤 Parked'},
     ];
     STAGES.slice(0,6).forEach(s=>defs.push({k:'stage',v:s,l:STAGE_LBL[s]}));
     const members = new Set();
@@ -1579,7 +1598,18 @@ const CL = {
     if (this.af.heat) cs = cs.filter(c=>band(c.heatScore)===this.af.heat);
     if (this.af.mode) cs = cs.filter(c=>(c.contactMode||'active-prospect')===this.af.mode);
     if (this.af.member) cs = cs.filter(c=>(c.interactions||[]).some(i=>i.createdBy===this.af.member));
-    cs.sort((a,b)=>b.heatScore-a.heatScore);
+    if (this.af.priority) cs = cs.filter(c=>(c.contactMode||'active-prospect')==='active-prospect'&&(c.pursuitPriority||'active')===this.af.priority);
+    const prioRank = {hot:0, active:1, parked:2};
+    cs.sort((a,b)=>{
+      const aIsAP = (a.contactMode||'active-prospect')==='active-prospect';
+      const bIsAP = (b.contactMode||'active-prospect')==='active-prospect';
+      if (aIsAP && bIsAP) {
+        const ra = prioRank[a.pursuitPriority||'active'] ?? 1;
+        const rb = prioRank[b.pursuitPriority||'active'] ?? 1;
+        if (ra !== rb) return ra - rb;
+      }
+      return b.heatScore - a.heatScore;
+    });
     cs.forEach(c=>{ const o=DB.get(c.id); if(o) o.heatScore=c.heatScore; });
     DB.save();
     this._list(cs);
@@ -1618,6 +1648,8 @@ const CL = {
             ${(c.contactMode||'active-prospect')==='relationship-builder'
               ?'<span class="badge b-rb">Nurture</span>'
               :'<span class="badge b-ap">Prospect</span>'}
+            ${(c.contactMode||'active-prospect')==='active-prospect'&&(c.pursuitPriority||'active')==='hot'?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#E63946;margin-left:2px;vertical-align:middle" title="Hot Pursuit"></span>':''}
+            ${(c.contactMode||'active-prospect')==='active-prospect'&&(c.pursuitPriority||'active')==='parked'?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#9B9B9B;margin-left:2px;vertical-align:middle" title="Parked"></span>':''}
           </div>
         </div>
       </div>
@@ -1796,6 +1828,16 @@ const DET = {
         </div>
       </div>
 
+      ${(c.contactMode||'active-prospect')==='active-prospect'?`
+      <div class="mode-block" id="pursuit-block-${id}">
+        <h4>Pursuit Priority</h4>
+        <div style="display:flex;gap:8px">
+          <button onclick="DET.setPriority('${id}','hot')" style="flex:1;padding:10px 4px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:${(c.pursuitPriority||'active')==='hot'?'#E63946':'var(--card2)'};color:${(c.pursuitPriority||'active')==='hot'?'#fff':'var(--text)'}">🔥 Hot Pursuit</button>
+          <button onclick="DET.setPriority('${id}','active')" style="flex:1;padding:10px 4px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:${(c.pursuitPriority||'active')==='active'?'#1B4D2E':'var(--card2)'};color:${(c.pursuitPriority||'active')==='active'?'#fff':'var(--text)'}">📋 Active</button>
+          <button onclick="DET.setPriority('${id}','parked')" style="flex:1;padding:10px 4px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:${(c.pursuitPriority||'active')==='parked'?'#9B9B9B':'var(--card2)'};color:${(c.pursuitPriority||'active')==='parked'?'#fff':'var(--text)'}">💤 Parked</button>
+        </div>
+      </div>`:''}
+
       <div class="nfu-card">
         <h4>Next Follow-up</h4>
         ${nfuHTML}
@@ -1813,6 +1855,22 @@ const DET = {
         <button class="btn btn-danger" style="width:100%;background:transparent;color:var(--red);border:1.5px solid var(--red)" onclick="DET.del('${id}')">Delete Contact</button>
       </div>
     `;
+  },
+
+  setPriority(id, priority) {
+    DB.update(id, {pursuitPriority: priority});
+    const c = DB.get(id);
+    if (!c) return;
+    const block = document.getElementById('pursuit-block-' + id);
+    if (block) {
+      block.querySelector('button:nth-child(1)').style.background = priority==='hot'?'#E63946':'var(--card2)';
+      block.querySelector('button:nth-child(1)').style.color = priority==='hot'?'#fff':'var(--text)';
+      block.querySelector('button:nth-child(2)').style.background = priority==='active'?'#1B4D2E':'var(--card2)';
+      block.querySelector('button:nth-child(2)').style.color = priority==='active'?'#fff':'var(--text)';
+      block.querySelector('button:nth-child(3)').style.background = priority==='parked'?'#9B9B9B':'var(--card2)';
+      block.querySelector('button:nth-child(3)').style.color = priority==='parked'?'#fff':'var(--text)';
+    }
+    toast('Priority updated');
   },
 
   del(id) {
@@ -2064,6 +2122,7 @@ const M = {
       nextFollowUp:{date:null,method:null,confirmed:false},
       heatScore:5, aiSummary:'',
       contactMode:this._contactMode,
+      pursuitPriority: this._contactMode==='active-prospect' ? 'active' : undefined,
       conversionScore:{score:null,explanation:'',lastUpdated:null},
       relationshipSuggestion:{checkInReason:'',suggestedDate:null,reclassifyFlag:false,reclassifyReason:''},
       createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()
